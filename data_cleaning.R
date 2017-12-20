@@ -46,6 +46,7 @@ vegtog <- left_join(vegdat, sitekey) %>%
          code != "ANT", code != "LITTER", code != "FRESH DIRT") %>%
   # make the case consistent for code
   mutate(code = tolower(code)) %>%
+  mutate(precipblock = tolower(precipblock)) %>%
   # remove the swain 
   filter(pasturetrt != "swain")%>%
   filter(code != "cowpie")
