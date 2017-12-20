@@ -9,4 +9,7 @@ ggplot(redbrome, aes(x=year, y=count)) + geom_point(aes(color=grazetrt)) + facet
 # check out broom for pulling out model info
 
 l <-lm(count~grazetrt*precinct, data=redbrome)
-l$coefficients
+anova(l)
+
+l2 <-aov(count~grazetrt*precinct, data=redbrome)
+summary(l2)
