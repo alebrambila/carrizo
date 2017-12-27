@@ -55,11 +55,21 @@ vegtog <- left_join(vegdat, sitekey) %>%
 
 #Rename the columns in plantkey to a) remove spaces and b) standardize name of column to vegdat and sitekey
 names(plantkey)
-names(plantkey) = c("id", "family", )
+names(plantkey) = c("plantID", "family", "commonfamily", "shortcode", "code", "binomial", "genus", "species", "variety", "synonym", "common", "sink","salt","grass","desert","juniper","oak","seep","oldform","soda","central","western","mountain","elkhorn","teblor","flowermonth","flowercolor","native","gkrprefer","refcode","comments", "form")
 
-#check out plant codes in vegdat for merging with plantkey
+#remove unnecessary column from plantkey
+plantkey <- dplyr::select(plantkey, -shortcode)
+plantkey <- dplyr::select(plantkey, -sink, -salt, -grass, -desert, -juniper, -oak, -seep, -soda, -central, -western, -mountain, -elkhorn, -teblor)
+plantkey <- dplyr::select(plantkey, -binomial, -commonfamily, -oldform, -native)
+
+#make sure they went away
+names(plantkey)
+
+#check out plant codes in vegtog and plantkey
 unique(vegtog$code)
+unique(plantkey$code)
 
+#what's up with the blank codes in vegtog
 ourcheck <- vegtog %>%
   filter(code == "")
-unique(vegtog$code)
+unique(vegtog$code) ##they just forgot to read the plot. 
