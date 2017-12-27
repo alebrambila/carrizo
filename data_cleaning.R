@@ -72,4 +72,15 @@ unique(plantkey$code)
 #what's up with the blank codes in vegtog
 ourcheck <- vegtog %>%
   filter(code == "")
-unique(vegtog$code) ##they just forgot to read the plot. 
+unique(vegtog$code) ##they just forgot to read the plot. It's only three rows.
+
+# join the two dataframes vegtog and plantkey to make vegtog1.
+vegtog1 <- left_join(vegtog, plantkey, by="code") %>%
+  # remove those three blank observances for now
+  # in base R subset() and which() do something similar
+  filter(code != "")
+ 
+#check out vegtog1 (combined vegdat, sitekey, and plantkey)
+names(vegtog1)
+##new columns just got added onto the end. there is now two comment columns because I just merged it by code
+##maybe i should merge it by both, or name them vegcomment and plantcomment
