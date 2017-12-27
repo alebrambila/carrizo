@@ -5,6 +5,7 @@ library(tidyverse)
 # make sure you first set your working directory to where the files are stored!
 list.files()
 
+#create vegdat, a data frame with collected vegetation data
 vegdat <- read.csv("veg plot data all.csv") %>%
   tbl_df()
 
@@ -12,14 +13,18 @@ vegdat <- read.csv("veg plot data all.csv") %>%
 head(vegdat)
 str(vegdat)
 
+#create sitekey, a dataframe that tells you what rodent and grazing treatment each site type from vegdat received
 sitekey <- read.csv("site type key.csv") %>%
   tbl_df()
 
-# plantkey <- read.csv("plant list.csv") %>%
-#   tbl_df()
-# 
-# funckey <- read.csv("plant forms.csv") %>%
-#   tbl_df()
+#create plantkey, a dataframe that tells you what species the species codes in vegdat refer to
+plantkey <- read.csv("plant list.csv") %>%
+  tbl_df()
+
+
+# create funckey, a dataframe that tells you functional characteristics of species in plant list
+funckey <- read.csv("plant forms.csv") %>%
+   tbl_df()
 
 ## Rename the columns to a) remove spaces and b) standardizing the name of the column to join vegdat and sitekey by
 ## vegdat previously had it as "Site.type" and sitekey as "site.type" - R is case sensitive and so these would not have joined
@@ -34,6 +39,9 @@ names(sitekey)
 
 unique(vegdat$code)
 
+#Rename the columns in plantkey to a) remove spaces and b) standardize name of column to vegdat and sitekey
+names(plantkey)
+names(plantkey) = c("id", "family", )
 
 # join the two dataframes. merge() does something similar in base R
 vegtog <- left_join(vegdat, sitekey) %>%
