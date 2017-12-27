@@ -5,7 +5,9 @@ ggplot(redbrome, aes(x=grazetrt, y=count)) + geom_boxplot() + facet_wrap(~precin
 ggplot(redbrome, aes(x=year, y=count)) + geom_point(aes(color=grazetrt)) + facet_wrap(~grazetrt)
 
 #read about error structure nlme - nonlinear mixed effect model and lme4 - linear mixed effect model
+#book by doug bates on mixed effects and blocks
 #block effects means you cant do ANOVA
+
 # check out broom for pulling out model info
 
 l <-lm(count~grazetrt*precinct, data=redbrome)
