@@ -9,7 +9,7 @@ list.files()
 vegdat <- read.csv("veg plot data all.csv") %>%
   tbl_df()
 
-
+#check out vegdat
 head(vegdat)
 str(vegdat)
 
@@ -21,27 +21,21 @@ sitekey <- read.csv("site type key.csv") %>%
 plantkey <- read.csv("plant list.csv") %>%
   tbl_df()
 
-
 # create funckey, a dataframe that tells you functional characteristics of species in plant list
 funckey <- read.csv("plant forms.csv") %>%
    tbl_df()
 
-## Rename the columns to a) remove spaces and b) standardizing the name of the column to join vegdat and sitekey by
+## Rename the columns of vegdat and sitekey to a) remove spaces and b) standardizing the name of the column to join vegdat and sitekey by sitetype
 ## vegdat previously had it as "Site.type" and sitekey as "site.type" - R is case sensitive and so these would not have joined
 names(vegdat)
 names(vegdat) = c("date", "newplotID", "observer", "site", "block", "sitetype", "precipblock", "newquadrat", "preciptrt", "code", "precinct", "comments",
                   "count", "originalorder", "precinctcurrent", "year", "ID", "cover")
 names(vegdat)
+
 names(sitekey)
 names(sitekey) = c("sitetype", "grazetrt", "pasturetrt", "rodenttrt", "exclosure", "altsitetype")
 names(sitekey)
 
-
-unique(vegdat$code)
-
-#Rename the columns in plantkey to a) remove spaces and b) standardize name of column to vegdat and sitekey
-names(plantkey)
-names(plantkey) = c("id", "family", )
 
 # join the two dataframes. merge() does something similar in base R
 vegtog <- left_join(vegdat, sitekey) %>%
@@ -59,6 +53,11 @@ vegtog <- left_join(vegdat, sitekey) %>%
   filter(pasturetrt != "swain")%>%
   filter(code != "cowpie")
 
+#Rename the columns in plantkey to a) remove spaces and b) standardize name of column to vegdat and sitekey
+names(plantkey)
+names(plantkey) = c("id", "family", )
+
+#check out plant codes in vegdat for merging with plantkey
 unique(vegtog$code)
 
 ourcheck <- vegtog %>%
