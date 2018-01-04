@@ -108,3 +108,19 @@ cowpies2 <- aggregate(cowpies$cowpiecount, by=list(cowpies$altsitetype, cowpies$
 
 #rename cowpies 2 so I can merge it with vegtog 2
 names(cowpies2) = c("altsitetype", "block", "year", "cowpietotal")
+
+#join vegtog2 and cowpies 2 by site and year
+#rearrange columns
+#remove redundant columns no longer interesting since merged already
+#sitetype and block info are both contained within site
+vegtog3 <- left_join(vegtog2, cowpies2, by=c("altsitetype", "block", "year"))%>%
+  dplyr::select(-sitetype, -altsitetype, -comments.y)
+vegtog3 <-vegtog3[c("newplotID", "ID", "year", "site", "block", "precinct","precinctcurrent", 
+                    "newquadrat","precipblock","preciptrt", "grazetrt", "pasturetrt", "rodenttrt", 
+                    "exclosure", "cowpietotal", "plantID", "code", "family", "genus", "species",
+                    "variety", "synonym",
+                    "common", "count", "cover", "originalorder", "form", "fullform", "native", 
+                    "lifecycle", "growthhabit", "flowermonth", "flowercolor", "gkrprefer", "refcode",
+                    "comments.x")]
+#rename comments.x to comments
+names(vegtog3)[36] <- "comments"
