@@ -90,3 +90,15 @@ names(funckey) = c("form", "fullform", "lifecycle", "growthhabit")
 #join
 vegtog2 <- left_join(vegtog1, funckey)
 names(vegtog2)
+
+## joining cowpie data to vegtog 2 ## issues ##
+## cowpie data is at the plot level, not at the quadrat level
+## all quadrats in a plot have the same grazing pressure (precinct and non precinct)
+## cowpie counts in cowpie data frame are made up of 7 rows of transect data within each plot
+## I need to figure out how to get these seven rows to fit into one row in vegdat (add them up?)
+
+#import and cleanup cowpies
+cowpies <- read.csv("cowpie counts all years.csv") %>%
+  tbl_df()
+cowpies <- dplyr::select(cowpies, -date, -obs) 
+names(cowpies) <- c("altsitetype", "altsite", "block", "cowpiecount", "transect", "cowpiecomments", "year", "cowpieID")
