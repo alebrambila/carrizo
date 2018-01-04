@@ -102,6 +102,9 @@ cowpies <- read.csv("cowpie counts all years.csv") %>%
   tbl_df()
 cowpies <- dplyr::select(cowpies, -date, -obs) 
 names(cowpies) <- c("altsitetype", "altsite", "block", "cowpiecount", "transect", "cowpiecomments", "year", "cowpieID")
+
 ##pull out sums of cowpies by site and year into cowpies2
 cowpies2 <- aggregate(cowpies$cowpiecount, by=list(cowpies$altsitetype, cowpies$block, cowpies$year),  FUN=sum)
 
+#rename cowpies 2 so I can merge it with vegtog 2
+names(cowpies2) = c("altsitetype", "block", "year", "cowpietotal")
