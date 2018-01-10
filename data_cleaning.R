@@ -124,3 +124,19 @@ vegtog3 <-vegtog3[c("newplotID", "ID", "year", "site", "block", "precinct","prec
                     "comments.x")]
 #rename comments.x to comments
 names(vegtog3)[36] <- "comments"
+
+#remove all the old component df that were merged into vegtog3 and rename vegtog3 as vegtog
+#i'm doing this now because i'm about to do transformations on vegtog for quesitons i'm interested in other scripts
+#this is basically the end of this script - i have a master (maybe tidy) data frame by observation for all observations
+##MAYBE STILL HAVE TO REMOVE SOME BAD OBSERVATIONS OR NAS 
+rm(cowpies)
+rm(funckey)
+rm(ourcheck)
+rm(plantkey)
+rm(sitekey)
+rm(vegdat)
+rm(vegtog1)
+rm(vegtog2)
+rm(cowpies2)
+vegtog <- vegtog3
+rm(vegtog3)
