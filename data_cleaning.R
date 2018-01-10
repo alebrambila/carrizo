@@ -133,6 +133,7 @@ names(vegtog3)[36] <- "comments"
 #i'm doing this now because i'm about to do transformations on vegtog for quesitons i'm interested in other scripts
 #this is basically the end of this script - i have a master (maybe tidy) data frame by observation for all observations
 ##MAYBE STILL HAVE TO REMOVE SOME BAD OBSERVATIONS OR NAS 
+## EX: data cleaning: do count and cover correspond?
 rm(cowpies)
 rm(funckey)
 rm(ourcheck)
