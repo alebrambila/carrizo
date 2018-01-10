@@ -1,3 +1,7 @@
+## This script exists to bring in all the Carrizo data and merge it into a master dataframe, vegtog.
+## It also aims to clean the data taking out unnecessary columns, arranging them and filtering irrelevant
+## or bad observations. 
+
 # load libraries to use
 library(tidyverse)
 
