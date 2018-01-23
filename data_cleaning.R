@@ -81,7 +81,7 @@ unique(vegtog$code) ##they just forgot to read the plot. It's only three rows.
 vegtog1 <- left_join(vegtog, plantkey, by="code") %>%
   # remove those three blank observances for now
   # in base R subset() and which() do something similar
-  filter(code != "")
+  filter(code != "", count !=0, !is.na(count), exclosure != "CW rat excl") #get rid of count=0 and NA, ignore where rats change.  just look at difference cows have
 #check out vegtog1 (combined vegdat, sitekey, and plantkey)
 names(vegtog1)
 ##new columns just got added onto the end. there is now two comment columns because I just merged it by code
