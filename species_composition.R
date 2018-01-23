@@ -24,5 +24,10 @@ ggplot(subset(vegtog3, vegtog3$grazetrt =="grazed"), aes(x=site, y=cowpietotal))
 
 #plot unique species per site in grazed sites
 ggplot((subset(vegtog3, vegtog3$grazetrt =="grazed")), aes(x=(length(unique(vegtog3$code))), y=cowpietotal)) +geom_boxplot()
- 
+
+## data cleaning do count and cover correspond?
+richdat <- vegtog3 %>%
+  filter(count != 0, !is.na(count)) %>%
+  group_by(newplotID, year, grazetrt, pasturetrt) %>%
+  summarize(richness = n())
        
