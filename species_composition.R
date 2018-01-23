@@ -16,9 +16,6 @@ anova(l)
 l2 <-aov(count~grazetrt*precinct, data=redbrome)
 summary(l2)
 
-l3 <-aov(length(unique(vegtog3$code))~cowpies*precinct, data=vegtog3)
-summary(l3)
-
 #plot cowpies per site over the years in grazed sites
 ggplot(subset(vegtog3, vegtog3$grazetrt =="grazed"), aes(x=site, y=cowpietotal)) +geom_boxplot()
 
