@@ -134,14 +134,6 @@ names(vegtog3)[36] <- "comments"
 #this is basically the end of this script - i have a master (maybe tidy) data frame by observation for all observations
 ##MAYBE STILL HAVE TO REMOVE SOME BAD OBSERVATIONS OR NAS 
 ## EX: data cleaning: do count and cover correspond?
-rm(cowpies)
-rm(funckey)
-rm(ourcheck)
-rm(plantkey)
-rm(sitekey)
-rm(vegdat)
-rm(vegtog1)
-rm(vegtog2)
-rm(cowpies2)
+rm(cowpies, funckey, ourcheck, plantkey, sitekey, vegdat, vegtog1, vegtog2, cowpies2)
 vegtog <- vegtog3
 rm(vegtog3)
