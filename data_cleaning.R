@@ -119,7 +119,7 @@ names(cowpies2) = c("altsitetype", "block", "year", "cowpietotal")
 #sitetype and block info are both contained within site
 vegtog3 <- left_join(vegtog2, cowpies2, by=c("altsitetype", "block", "year"))%>%
   dplyr::select(-sitetype, -altsitetype, -comments.y)
-vegtog3 <-vegtog3[c("newplotID", "ID", "year", "site", "block", "precinct","precinctcurrent", 
+vegtog3 <-vegtog3[c("quadrat", "ID", "year", "plot", "block", "precinct","precinctcurrent", 
                     "newquadrat","precipblock","preciptrt", "grazetrt", "pasturetrt", "rodenttrt", 
                     "exclosure", "cowpietotal", "plantID", "code", "family", "genus", "species",
                     "variety", "synonym",
@@ -129,11 +129,16 @@ vegtog3 <-vegtog3[c("newplotID", "ID", "year", "site", "block", "precinct","prec
 #rename comments.x to comments
 names(vegtog3)[36] <- "comments"
 
-#remove all the old component df that were merged into vegtog3 and rename vegtog3 as vegtog
-#i'm doing this now because i'm about to do transformations on vegtog for quesitons i'm interested in other scripts
-#this is basically the end of this script - i have a master (maybe tidy) data frame by observation for all observations
-##MAYBE STILL HAVE TO REMOVE SOME BAD OBSERVATIONS OR NAS 
-## EX: data cleaning: do count and cover correspond?
+# Clean up environment.
 rm(cowpies, funckey, ourcheck, plantkey, sitekey, vegdat, vegtog1, vegtog2, cowpies2)
 vegtog <- vegtog3
+names(vegtog)[1] <-"quadrat"
+names(vegtog)[2] <-"plot"
+vegtog <- select(vegtog, -comments.x, -originalorder, -ID, -plantID, -comments, -refcode, -form, -pasturetrt)
 rm(vegtog3)
+
+# Remaining issues: 
+  #Cover is rarely measured
+  #What to do about precipblock (unique: , none, 1, 2, 3) 
+  #and preciptreat(unique: none, shelter, control, irrigation)
+  #What to do about precinct current. Many unique vars on N/P/OK/not OK/borderline
