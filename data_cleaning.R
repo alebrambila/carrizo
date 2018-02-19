@@ -140,8 +140,32 @@ vegtog <- vegtog3
 vegtog <- select(vegtog, -comments.x, -originalorder, -ID, -plantID, -comments, -refcode, -form, -pasturetrt)
 rm(vegtog3)
 
+#deal with rpecip treatment
+precipcount <- vegtog%>%
+  group_by(preciptrt)%>%
+  summarize(numtrt=n()) #blank = 5744, control=343, irrigation=305, none=1647, shelter=216.
+# going to remove irrigation + shelter
+vegtog <- vegtog %>%
+  mutate(preciptrt=tolower(preciptrt)) %>%
+  filter(preciptrt!="irrigation", preciptrt!="shelter") %>%
+#now i think i can safely ge trid of these columns
+  select(-precipblock, -preciptrt, -pasturetrt, -rodenttrt, -originalorder, -form, -fullform, -refcode) %>%
+  #get rid of anything in precinct current that is "NOT OK"
+  mutate(precinctcurrent=tolower(precinctcurrent)) %>%
+  filter(precinctcurrent!="n not ok", precinctcurrent!="n not ok. active pruning.", precinctcurrent!="n not okay", precinctcurrent!="not ok", precinctcurrent!="p not ok", precinctcurrent!="p not okay")
+
+
+#What to do about precinct current. Many unique vars on N/P/OK/not OK/borderline
+newprecinctcount <- vegtog%>%
+  group_by(precinct, precinctcurrent)%>%
+  summarize(howmany=n())%>%
+  mutate(precinctcurrent=tolower(precinctcurrent))
+#  mutate(precinctcurrent=ifelse(grepl(precinctcurrent, "not ok"), NA, precinctcurrent))
+##grepl is pulling the whole list and i want to go item by item... 
+##i'm trying to get rid
+
+rm(newprecinctcount, precipcount)
+
 # Remaining issues: 
   #Cover is rarely measured
-  #What to do about precipblock (unique: , none, 1, 2, 3) 
-  #and preciptreat(unique: none, shelter, control, irrigation)
-  #What to do about precinct current. Many unique vars on N/P/OK/not OK/borderline
+
