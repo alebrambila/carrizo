@@ -107,6 +107,17 @@ species.scores$species <- row.names(species.scores)
 species.scores <- as_tibble(species.scores)
 
 
+#ELLIPSES#
+sumdatscore <- data.scores%>%
+  group_by(quadrat, precinct, grazetrt, pasturetrt, NMDS1, NMDS2) %>%
+  summarize()
+
+
+#plotspecNMDS <- metaMDS(plotspec, scale = T)
+ellipses <- ordiellipse(plotspecNMDS, sumdatscore$grazetrt, display="sites")
+
+ordiellipse(plotspecNMDS, data.scores$grazetrt, display = "sites", kind = "sd", label = T)
+
 # Plot it
 ggplot() +
   geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) +  # add the species labels
