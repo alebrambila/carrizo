@@ -75,31 +75,38 @@ ggplot() +
 ### NMDS when averaged values across years ##
 
 #spread plotID and species into a new data frame for NMDS
-plotspec <- select(vegtog, year, quadrat, code, count)%>%
-  group_by(quadrat, code, year) %>%
+plotspec <- select(vegtog, year, quadrat, precinct, code, count)%>%
+  group_by(quadrat, precinct,  code, year) %>%
   summarize(meancount=mean(count))  %>%
-  group_by(quadrat, code) %>%
+  group_by(quadrat, precinct, code) %>%
   summarize(meancount = mean(meancount))
 plotspec <-spread(plotspec, code, meancount, fill=0)%>%
   as.data.frame()
-rownames(plotspec) <-paste(plotspec$quadrat)
-plotspec <- select(plotspec, -quadrat)
+plotspec <- plotspec %>%
+  mutate(quadratNEW = paste(quadrat,precinct))
+rownames(plotspec) <-paste(plotspec$quadratNEW)
+plotspec <- plotspec %>%
+  select(-quadrat, -precinct, -quadratNEW)
+
 
 # run NMDS
-plotspecNMDS <- metaMDS(plotspec, scale = T)
+plotspecNMDS <- metaMDS(plotspec, scale = T, trymax=500, k=3)
 #base r plot
 plot(plotspecNMDS)
 
 # create a key for joining
 plotkey <- vegtog %>%
-  select(quadrat, precinct, grazetrt, pasturetrt, rodenttrt=)
+  select(quadrat, precinct, grazetrt) %>%
+  unique() %>%
+  mutate(quadratNEW = paste(quadrat,precinct)) %>%
+  mutate(interaction = paste(precinct ,grazetrt))
 
 # Extract and format site scores
 data.scores <- as.data.frame(scores(plotspecNMDS, display=c("sites")))
-data.scores$quadrat <- row.names(data.scores)
+data.scores$quadratNEW <- row.names(data.scores)
 data.scores <- as_tibble(data.scores)
 
-data.scores <- right_join(plotkey, data.scores)
+data.scores <- right_join(plotkey, data.scores, by="quadratNEW")
 
 # Extract and format species scores
 species.scores <- as.data.frame(scores(plotspecNMDS, display=c("species")))
@@ -108,15 +115,11 @@ species.scores <- as_tibble(species.scores)
 
 
 #ELLIPSES#
-sumdatscore <- data.scores%>%
-  group_by(quadrat, precinct, grazetrt, pasturetrt, NMDS1, NMDS2) %>%
-  summarize()
-
+data.scores <- data.scores %>%
+  select(-quadrat, -precinct, -grazetrt, -quadratNEW, -NMDS3)
 
 #plotspecNMDS <- metaMDS(plotspec, scale = T)
-ellipses <- ordiellipse(plotspecNMDS, sumdatscore$grazetrt, display="sites")
-
-ordiellipse(plotspecNMDS, data.scores$grazetrt, display = "sites", kind = "sd", label = T)
+ellipses2 <- ordiellipse(plotspecNMDS, data.scores$interaction, display="sites")
 
 # Plot it
 ggplot() +
@@ -126,3 +129,17 @@ ggplot() +
   #  scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
   coord_equal() +
   theme_bw()
+
+veganCovEllipse<-function (cov, center = c(0, 0), scale = 1, npoints = 100) 
+{
+  theta <- (0:npoints) * 2 * pi/npoints
+  Circle <- cbind(cos(theta), sin(theta))
+  t(center + scale * t(Circle %*% chol(cov)))
+}
+
+df_ell <- data.frame()
+for(g in levels(data.scores$interaction)){
+  df_ell <- rbind(df_ell, cbind(as.data.frame(with(data.scores[data.scores$interaction==g,],
+                                                   veganCovEllipse(cov.wt(cbind(NMDS1,NMDS2),wt=rep(1/length(NMDS1),length(NMDS1)))$cov,center=c(mean(NMDS1),mean(NMDS2)))))
+                                ,group=g))
+}
