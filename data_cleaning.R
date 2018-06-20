@@ -4,168 +4,148 @@
 
 # load libraries to use
 library(tidyverse)
+library(vegan)
 
-# load the data
+
+### LOAD THE DATA ###
+
 # make sure you first set your working directory to where the files are stored!
 list.files()
 
 #create vegdat, a data frame with collected vegetation data
-vegdat <- read.csv("veg plot data all.csv") %>%
-  tbl_df()
-
-#check out vegdat
-head(vegdat)
-str(vegdat)
+vegdat <- read.csv("veg plot data all.csv")
 
 #create sitekey, a dataframe that tells you what rodent and grazing treatment each site type from vegdat received
-sitekey <- read.csv("site type key.csv") %>%
-  tbl_df()
+sitekey <- read_csv("site type key.csv")
 
 #create plantkey, a dataframe that tells you what species the species codes in vegdat refer to
-plantkey <- read.csv("plant list.csv") %>%
-  tbl_df()
+plantkey <- read_csv("plant list.csv")
 
 # create funckey, a dataframe that tells you functional characteristics of species in plant list
-funckey <- read.csv("plant forms.csv") %>%
-   tbl_df()
+funckey <- read_csv("plant forms.csv")
 
-## Rename the columns of vegdat and sitekey to a) remove spaces and b) standardizing the name of the column to join vegdat and sitekey by sitetype
-## vegdat previously had it as "Site.type" and sitekey as "site.type" - R is case sensitive and so these would not have joined
-names(vegdat)
-names(vegdat) = c("date", "newplotID", "observer", "site", "block", "sitetype", "precipblock", "newquadrat", "preciptrt", "code", "precinct", "comments",
+#create biomass, a dataframe that tells you biomass measurements
+biomass <- read_csv("veg plot biomass all years stacked.csv")
+
+#create cowpies, a dataframe that tells you how many cowpies per plot
+cowpies <- read_csv("cowpie counts all years.csv")
+
+
+
+### JOIN VEGDAT AND SITE KEY TO CREATE VEGTOG ###
+
+#standardize column names first:
+names(vegdat) = c("date", "quadrat", "observer", "site", "plot", "sitetype", "precipblock", "newquadrat", "preciptrt", "code", "precinct", "comments",
                   "count", "originalorder", "precinctcurrent", "year", "ID", "cover")
-names(vegdat)
-
-names(sitekey)
 names(sitekey) = c("sitetype", "grazetrt", "pasturetrt", "rodenttrt", "exclosure", "altsitetype")
-names(sitekey)
 
-
-# join the two dataframes. merge() does something similar in base R
+#join:
 vegtog <- left_join(vegdat, sitekey) %>%
+  
   # remove columns we don't really need
-  # select() is a common function, we specify that we are using the one in dplyr
-  dplyr::select(-date, -observer) %>%
-  # remove bare and litter for now
-  # in base R subset() and which() do something similar
+  select(-date, -observer, -comments, -originalorder, ID, -altsitetype) %>%
+  
+  # filter non-species codes
   filter(code != "bare", code != "litter", code != "fresh dirt", code != "BARE", code != "HOLE", code != "bphole", code != "hole", code != "GOPHER", code != "MOSS",
-         code != "ANT", code != "LITTER", code != "FRESH DIRT") %>%
+         code != "ANT", code != "LITTER", code != "FRESH DIRT", code != "cowpie", code != "") %>%
+  
   # make the case consistent for code
   mutate(code = tolower(code)) %>%
   mutate(precipblock = tolower(precipblock)) %>%
-  # remove the swain 
+  
+  # remove the swain pasture that was never grazed
   filter(pasturetrt != "swain")%>%
-  filter(code != "cowpie")
+  # remove rat exclosures in the remaining area, as well as species with no counts or NA counts.
+  filter (count !=0, !is.na(count), exclosure != "CW rat excl")
 
-#Rename the columns in plantkey to a) remove spaces and b) standardize name of column to vegdat and sitekey
-names(plantkey)
+
+### JOIN VEGTOG AND PLANTKEY ###
+
+#Standardize column names first
 names(plantkey) = c("plantID", "family", "commonfamily", "shortcode", "code", "binomial", "genus", "species", "variety", "synonym", "common", "sink","salt",
                     "grass","desert","juniper","oak","seep","oldform","soda","central","western","mountain","elkhorn","teblor","flowermonth","flowercolor",
                     "native","gkrprefer","refcode","comments", "form")
+
 #remove unnecessary column from plantkey
-plantkey <- dplyr::select(plantkey, -shortcode)
-plantkey <- dplyr::select(plantkey, -sink, -salt, -grass, -desert, -juniper, -oak, -seep, -soda, -central, -western, -mountain, -elkhorn, -teblor)
-plantkey <- dplyr::select(plantkey, -binomial, -commonfamily, -oldform)
-#make sure they went away
-names(plantkey)
+plantkey <- dplyr::select(plantkey, -shortcode, -sink, -salt, -grass, -desert, -juniper, -oak, 
+                          -seep, -soda, -central, -western, -mountain, -elkhorn, -teblor, binomial, 
+                          -commonfamily, -oldform, -common, -genus, -species, -flowercolor, -comments, -variety, -synonym, -family)
 
-# check out plant codes in vegtog and plantkey for joining
-unique(vegtog$code)
-unique(plantkey$code)
-# what's up with the blank codes in vegtog
-ourcheck <- vegtog %>%
-  filter(code == "")
-unique(vegtog$code) ##they just forgot to read the plot. It's only three rows.
+# join vegtog and plantkey
+vegtog <- left_join(vegtog, plantkey, by="code")
 
-# join the two dataframes vegtog and plantkey to make vegtog1
-vegtog1 <- left_join(vegtog, plantkey, by="code") %>%
-  # remove those three blank observances for now
-  # in base R subset() and which() do something similar
-  filter(code != "", count !=0, !is.na(count), exclosure != "CW rat excl") #get rid of count=0 and NA, ignore where rats change.  just look at difference cows have
-#check out vegtog1 (combined vegdat, sitekey, and plantkey)
-names(vegtog1)
-##new columns just got added onto the end. there is now two comment columns because I just merged it by code
-##maybe i should merge it by both, or name them vegcomment and plantcomment
 
-##join the two dataframes vegtog1 and funckey to make vegtog2
-#first rename funckey columns
-names(funckey)
+### JOIN VEGTOG AND FUNCKEY ###
+
+#rename funckey columns
 names(funckey) = c("form", "fullform", "lifecycle", "growthhabit")
+
 #join
-vegtog2 <- left_join(vegtog1, funckey)
-names(vegtog2)
+vegtog <- left_join(vegtog, funckey) %>%
+  select(-native, -gkrprefer, -refcode)
 
-## joining cowpie data to vegtog 2 ## issues ##
-## cowpie data is at the plot level, not at the quadrat level
-## all quadrats in a plot have the same grazing pressure (precinct and non precinct)
-## cowpie counts in cowpie data frame are made up of 7 rows of transect data within each plot
-## I need to figure out how to get these seven rows to fit into one row in vegdat (add them up?)
 
-#import and cleanup cowpies
-cowpies <- read.csv("cowpie counts all years.csv") %>%
-  tbl_df()
-cowpies <- dplyr::select(cowpies, -date, -obs) 
-names(cowpies) <- c("altsitetype", "altsite", "block", "cowpiecount", "transect", "cowpiecomments", "year", "cowpieID")
+### JOIN VEGTOG AND BIOMASS ###
 
-##pull out sums of cowpies by site and year into cowpies2
-cowpies2 <- aggregate(cowpies$cowpiecount, by=list(cowpies$altsitetype, cowpies$block, cowpies$year),  FUN=sum)
+#clean up and rename biomass columns
+biomass <- biomass %>%
+  select("year", "Block", "New Plot ID", "net weight", "season")
+names(biomass) = c("year", "plot", "quadrat", "netwt", "wtmonth")
+biomass <- biomass %>%
+  filter(!is.na(year), !is.na(plot), !is.na(netwt), !is.na(quadrat), !is.na(wtmonth))
 
-#rename cowpies 2 so I can merge it with vegtog 2
-names(cowpies2) = c("altsitetype", "block", "year", "cowpietotal")
+#join
+vegtog <- left_join(vegtog, biomass)
+names(vegtog)
 
-#join vegtog2 and cowpies 2 by site and year
-#rearrange columns
-#remove redundant columns no longer interesting since merged already
-#sitetype and block info are both contained within site
-vegtog3 <- left_join(vegtog2, cowpies2, by=c("altsitetype", "block", "year"))%>%
-  dplyr::select(-sitetype, -altsitetype, -comments.y)
-vegtog3 <- vegtog3[c("newplotID", "ID", "year", "site", "block", "precinct","precinctcurrent", 
-                    "newquadrat","precipblock","preciptrt", "grazetrt", "pasturetrt", "rodenttrt", 
-                    "exclosure", "cowpietotal", "plantID", "code", "family", "genus", "species",
-                    "variety", "synonym",
-                    "common", "count", "cover", "originalorder", "form", "fullform", "native", 
-                    "lifecycle", "growthhabit", "flowermonth", "flowercolor", "gkrprefer", "refcode",
-                    "comments.x")]
-names(vegtog3) <- c("quadrat", "ID", "year", "plot", "block", "precinct","precinctcurrent", 
-                    "newquadrat","precipblock","preciptrt", "grazetrt", "pasturetrt", "rodenttrt", 
-                    "exclosure", "cowpietotal", "plantID", "code", "family", "genus", "species",
-                    "variety", "synonym",
-                    "common", "count", "cover", "originalorder", "form", "fullform", "native", 
-                    "lifecycle", "growthhabit", "flowermonth", "flowercolor", "gkrprefer", "refcode",
-                    "comments")
+### JOIN VEGTOG AND COWPIES ###
 
-# Clean up environment.
-rm(cowpies, funckey, ourcheck, plantkey, sitekey, vegdat, vegtog1, vegtog2, cowpies2)
-vegtog <- vegtog3
-vegtog <- select(vegtog, -comments.x, -originalorder, -ID, -plantID, -comments, -refcode, -form, -pasturetrt)
-rm(vegtog3)
+#clean up and rename cowpies
+cowpies <-cowpies %>%
+  select(year, "alt site type", block, cowpies)
+names(cowpies)<-c("year", "type","block", "cowpies")
+cowpies <-cowpies %>%
+  mutate(site = paste(type, "R", block, sep=""))%>%
+  select(-type, -block)
 
-#deal with rpecip treatment
-precipcount <- vegtog%>%
-  group_by(preciptrt)%>%
-  summarize(numtrt=n()) #blank = 5744, control=343, irrigation=305, none=1647, shelter=216.
-# going to remove irrigation + shelter
+##sum cowpies by site and year
+cowpies <- aggregate(cowpies$cowpies, by=list(cowpies$site, cowpies$year),  FUN=sum)
+names(cowpies) <- c("site", "year", "cowpies")
+
+#join by site and year
+vegtog <- left_join(vegtog, cowpies)
+
+
+###CLEANUP###
+
+#remove columns
+vegtog<- vegtog %>%
+  select(-sitetype, -precipblock, -newquadrat, -ID, -pasturetrt, -rodenttrt, -plantID, -exclosure)
+
+vegtog <- vegtog[c("year", "site", "plot", "quadrat", "precinct", "precinctcurrent", "preciptrt", 
+                   "grazetrt", "cowpies", "netwt", "wtmonth", "code", "binomial", "count", "cover", "flowermonth", 
+                   "form", "fullform", "lifecycle", "growthhabit")]
+
+
+#remove precip treatments that have irrigation or shelter.  get rid of other unnecessary columns
 vegtog <- vegtog %>%
   mutate(preciptrt=tolower(preciptrt)) %>%
-  filter(preciptrt!="irrigation", preciptrt!="shelter") %>%
-#now i think i can safely ge trid of these columns
-  select(-precipblock, -preciptrt, -pasturetrt, -rodenttrt, -originalorder, -form, -fullform, -refcode) %>%
+  filter(preciptrt!="irrigation", preciptrt!="shelter", !is.na(binomial)) %>%
   #get rid of anything in precinct current that is "NOT OK"
   mutate(precinctcurrent=tolower(precinctcurrent)) %>%
-  filter(precinctcurrent!="n not ok", precinctcurrent!="n not ok. active pruning.", precinctcurrent!="n not okay", precinctcurrent!="not ok", precinctcurrent!="p not ok", precinctcurrent!="p not okay")
+  filter(precinctcurrent!="n not ok", precinctcurrent!="n not ok. active pruning.", 
+         precinctcurrent!="n not okay", precinctcurrent!="not ok", precinctcurrent!="p not ok", 
+         precinctcurrent!="p not okay")
 
+# Clean up environment.
+rm(biomass, cowpies, funckey, plantkey, sitekey, vegdat)
 
-#What to do about precinct current. Many unique vars on N/P/OK/not OK/borderline
-newprecinctcount <- vegtog%>%
-  group_by(precinct, precinctcurrent)%>%
-  summarize(howmany=n())%>%
-  mutate(precinctcurrent=tolower(precinctcurrent))
-#  mutate(precinctcurrent=ifelse(grepl(precinctcurrent, "not ok"), NA, precinctcurrent))
-##grepl is pulling the whole list and i want to go item by item... 
-##i'm trying to get rid
+names(vegtog)
 
-rm(newprecinctcount, precipcount)
+##FN for Calculating SE
+calcSE<-function(x){
+  x <- x[!is.na(x)]
+  sd(x)/sqrt(length(x))
+}
 
-# Remaining issues: 
-  #Cover is rarely measured
-
+str(vegtog)
