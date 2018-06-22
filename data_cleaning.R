@@ -14,19 +14,14 @@ list.files()
 
 #create vegdat, a data frame with collected vegetation data
 vegdat <- read.csv("veg plot data all.csv")
-
 #create sitekey, a dataframe that tells you what rodent and grazing treatment each site type from vegdat received
 sitekey <- read_csv("site type key.csv")
-
 #create plantkey, a dataframe that tells you what species the species codes in vegdat refer to
 plantkey <- read_csv("plant list.csv")
-
 # create funckey, a dataframe that tells you functional characteristics of species in plant list
 funckey <- read_csv("plant forms.csv")
-
 #create biomass, a dataframe that tells you biomass measurements
 biomass <- read_csv("veg plot biomass all years stacked.csv")
-
 #create cowpies, a dataframe that tells you how many cowpies per plot
 cowpies <- read_csv("cowpie counts all years.csv")
 
@@ -92,7 +87,9 @@ biomass <- biomass %>%
   select("year", "Block", "New Plot ID", "net weight", "season")
 names(biomass) = c("year", "plot", "quadrat", "netwt", "wtmonth")
 biomass <- biomass %>%
-  filter(!is.na(year), !is.na(plot), !is.na(netwt), !is.na(quadrat), !is.na(wtmonth))
+  filter(!is.na(year), !is.na(plot), !is.na(netwt), !is.na(quadrat), !is.na(wtmonth))%>%
+  mutate(wtmonth=ifelse(wtmonth=="Spring", "April", wtmonth))
+
 
 #join
 vegtog <- left_join(vegtog, biomass)
