@@ -1,6 +1,18 @@
+# load libraries to use
+library(tidyverse)
+library(vegan)
+
+# set ggplot2 theme
+theme_set(theme_bw(base_size = 16) + theme(text = element_text(size = 20)) +
+            theme(panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  strip.background = element_blank(),
+                  panel.border = element_rect(colour = "black")))
+
+
 #calculate counts of native and invasive grasses and forbs by quadrat
 native_coverGF <- vegtog %>%
-  mutate(percover=count/81) %>%
+  mutate(percover=count/81*100) %>%
   mutate(native=substr(form, 1, 1)) %>%
   mutate(native=as.factor(native)) %>%
   mutate(grazetrt=ifelse(year%in% c(2007,2012,2013,2014,2015) & grazetrt=="grazed", "gnograze", ifelse(year%in% c(2007,2012,2013,2014,2015) & grazetrt=="ungrazed", "nograze", grazetrt)))%>%
@@ -15,12 +27,12 @@ levels(native_coverGF$native) <- c("Invasive", "Native")
 #grazed years are 2008-2011, 2016-2017
 ggplot(subset(native_coverGF, growthhabit=="grass"), aes(year, meancover)) + 
   geom_bar(aes(fill=grazetrt), stat="identity", position="dodge") +
-  geom_errorbar(aes(ymin=(meancover-secover), ymax=meancover+secover, color=grazetrt), position="dodge") +
-  theme_bw() + scale_color_brewer() +facet_wrap(~native)+
+  geom_errorbar(aes(ymin=(meancover-secover), ymax=meancover+secover, group=grazetrt), position="dodge", color = "black", lwd = .1) +
+   scale_color_brewer() +facet_wrap(~native)+
   scale_fill_manual("Result", values = c("grey","brown", "grey", "darkblue"), 
                     labels = c("No Grazing", " Grazed", "No Grazing", "Ungrazed")) +
-  labs(x="Year",y="% Cover")+
-  annotate("segment", x = 2012, xend = 2012, y = .5, yend = .4, colour = "black", size=.5, alpha=1, arrow=arrow())
+  labs(x="Year",y="Percent Cover") +
+  annotate("segment", x = 2012, xend = 2012, y = 50, yend = 46, colour = "black", size=.5, alpha=1, arrow=arrow()) + theme(legend.position = "none")
 
 #redo including precincts
 native_coverGFfilter <- vegtog %>%
