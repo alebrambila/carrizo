@@ -37,7 +37,7 @@ levels(native_coverGF$growthhabit) <- c("Forb", "Grass")
 
 #Tukey test, tells us which groups are significantly different
 library(agricolae)
-percentcover.lm <- lm(meancover ~ anlgrp, data = native_coverGF)
+percentcover.lm <- lm(nativecover ~ anlgrp, data = native_coverGF)
 percentcover.av <- aov(percentcover.lm)
 summary(percentcover.av)
 tukey.test <- TukeyHSD(percentcover.av)
@@ -47,7 +47,7 @@ tukey.test2 <- HSD.test(percentcover.av, trt = 'anlgrp')
 tukey.test2
 tukeyresults <- tukey.test2$groups
 tukeyresults <- rownames_to_column(tukeyresults, var = "anlgrp") %>%
-  select(-meancover)
+  select(-nativecover)
 native_coverGF <- left_join(native_coverGF, tukeyresults)
 #covergroups gives each bar in the visualization a letter that puts it in a significance group
 covergroups <- native_coverGF %>%
@@ -76,6 +76,10 @@ ggplot(subset(native_coverGF), aes(year, meancover)) +
 
 
 
+
+
+
+
 #counts of native and invasive grasses with and without grazing,
 #grazed years are 2008-2011, 2016-2017
 ggplot(subset(native_coverGF, growthhabit=="grass"), aes(year, meancover)) + 
@@ -90,6 +94,10 @@ ggplot(subset(native_coverGF, growthhabit=="grass"), aes(year, meancover)) +
 
 
 
+
+
+
+### MORE ANALYSIS WITH PRECINCT, ETC
 #redo including precincts
 native_coverGFfilter <- vegtog %>%
   # filter(!is.na(cover)) %>%
