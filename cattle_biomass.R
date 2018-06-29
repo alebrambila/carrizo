@@ -24,33 +24,10 @@ grazing_biomass<-vegtog %>%
   summarize() %>%
   filter(year==2008|year==2009|year==2010|year==2011|year==2016|year==2017) %>%
   group_by(year, precinct, grazetrt, wtmonth) %>%
-  mutate(avgwt=mean(netwt), sewt=calcSE(netwt)) %>%
-  mutate(anlgrp=year) %>%
-  mutate(anlgrp=ifelse(precinct=="N", anlgrp+.1, anlgrp)) %>%
-  mutate(anlgrp=ifelse(wtmonth=="april", anlgrp+.01, anlgrp)) %>%
-  mutate(anlgrp=ifelse(grazetrt=="grazed", anlgrp+.001, anlgrp)) %>%
-  mutate(anlgrp=anlgrp*1000)
+  mutate(avgwt=mean(netwt), sewt=calcSE(netwt))
 
 levels(grazing_biomass$precinct) <- c("", "Off-Precinct", "Precinct", "Precinct")
 levels(grazing_biomass$wtmonth) <-c("Pre-Grazing", "Post-Grazing")
-
-#SIG ANALYSIS (tukey)
-#Tukey test, tells us which groups are significantly different
-library(agricolae)
-biomass.lm <- lm(netwt ~ anlgrp, data = grazing_biomass)
-biomass.av <- aov(biomass.lm)
-summary(biomass.av)
-tukey.test2 <- HSD.test(biomass.av, trt = 'anlgrp')
-tukey.test2
-tukeyresults <- tukey.test2$groups
-tukeyresults <- rownames_to_column(tukeyresults, var = "anlgrp") %>%
-  select(-netwt) %>%
-  mutate(anlgrp=as.numeric(anlgrp))
-grazing_biomass <- left_join(grazing_biomass, tukeyresults)
-#covergroups gives each bar in the visualization a letter that puts it in a significance group
-biomassgroups <- grazing_biomass %>%
-  group_by(year, grazetrt, precinct, wtmonth, avgwt, sewt, groups) %>%
-  summarize()
 
 
 ggplot(grazing_biomass)  +
@@ -65,6 +42,31 @@ ggplot(grazing_biomass)  +
                 position="dodge", color = "black", lwd = .1)+
   theme(legend.position = "none")
 
+##MIXED EFFECTS MODEL
+library(lme4)
+biomass.model <- lmer(biomass~grazetrt+wtmonth + (1|year) + (1|plot), data=subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed"), REML=FALSE)
+summary(grazing.model)
+
+#Look for interaction effect
+grazing.null <- lmer(meancover~grazetrt+native + (1|year) + (1|plot), data=subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed"), REML=FALSE)
+anova(grazing.null,grazing.model)
+
+biomass.agg <-grazing_biomass %>%
+  group_by(grazetrt, precinct, wtmonth) %>%
+  summarize(meanwt=mean(netwt), sewt=calcSE(netwt))
+
+biomas.agg <-grazing_biomass %>%
+  group_by(grazetrt, wtmonth)%>%
+  summarize(meanwt=mean(netwt), sewt=calcSE(netwt))
+  
+
+ggplot(biomass.agg, aes(grazetrt, meanwt)) + 
+  geom_bar(aes(fill=grazetrt), stat="identity", position="dodge") +
+  facet_grid(wtmonth~precinct) +
+  geom_errorbar(aes(ymin=(meanwt-sewt), ymax=meanwt+sewt, group=grazetrt), position="dodge", color = "black", lwd = .1) +
+  scale_fill_manual("Result", values = c("brown","darkblue"))+
+  labs(x="",y="Biomass") + 
+  theme(legend.position = "none")
 
 #rarifications - diversity (stem densities) - species # curve, m SAR, IAR - Josh Grenoff, Carrizo paper
 #create SAR and situate on it based on richness/number
