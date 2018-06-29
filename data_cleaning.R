@@ -78,7 +78,7 @@ names(funckey) = c("form", "fullform", "lifecycle", "growthhabit")
 #join
 vegtog <- left_join(vegtog, funckey) %>%
   select(-native, -gkrprefer, -refcode)
-
+vegtog.sim <-vegtog
 
 ### JOIN VEGTOG AND BIOMASS ###
 
@@ -91,7 +91,7 @@ biomass <- biomass %>%
   mutate(wtmonth=ifelse(wtmonth=="Spring", "April", wtmonth))
 
 
-#join
+#join (this doubles all entries in vegtog, giving them a spring and fall weight row)
 vegtog <- left_join(vegtog, biomass)
 names(vegtog)
 
@@ -135,7 +135,7 @@ vegtog <- vegtog %>%
          precinctcurrent!="p not okay")
 
 # Clean up environment.
-rm(biomass, cowpies, funckey, plantkey, sitekey, vegdat)
+rm(cowpies, funckey, plantkey, sitekey, vegdat)
 
 names(vegtog)
 
