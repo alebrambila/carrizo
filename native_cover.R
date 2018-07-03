@@ -4,7 +4,8 @@
 ### 2. Convert pin drops to % covers (81 total, #/81)
 ### 3. Aggregate all native and exotic species by summing % covers within a quadrat/year (WILL NOT ADD TO 100%)
 ### 3b. Do we want to know how proportion of bare ground changes? Seems like it might be relevant. 
-### 4. Visualize annual effect by taking mean and SE of quadrats each year.
+### 4a. Visualize annual effect (V1) by taking mean and SE of quadrats each year.
+### 4b. Visualize annual effect (V2) log response ratio of means (what about SE's?)
 ### 5a. Aggregate across years (V1) (mean across years)
 ### 5b. Aggregate across years (V2) 
 ###     (mean of the log response ratio for each year: log(grazed/ungrazed))
@@ -26,11 +27,14 @@ natcover <- vegtog.sim %>%
   mutate(native=substr(form, 1, 1)) %>%
   mutate(native=as.factor(native)) %>%
   mutate(growthhabit=as.factor(growthhabit))%>%
+  #for years that were grazed (grazed/ungrazed), for years that were not grazed (gnograze/nograze), respectively.
   mutate(grazetrt=ifelse(year%in% c(2007,2012,2013,2014,2015) & grazetrt=="grazed", "gnograze", ifelse(year%in% c(2007,2012,2013,2014,2015) & grazetrt=="ungrazed", "nograze", grazetrt)))%>%
   group_by(year, site, quadrat, plot, precinct, grazetrt, growthhabit, native) %>%
   summarize(percover=sum(percover)) %>%
-  group_by(year, grazetrt, growthhabit, native) %>%
   filter(!is.na(native), !is.na(growthhabit))
+levels(natcover$native) <- c("Invasive", "Native")
+levels(natcover$growthhabit) <- c("Forb", "Grass")
+
 
 #average native and invasive total cover across all quadrats within a year
 natcover.annual<-natcover %>%
@@ -45,15 +49,13 @@ natcova.spread <- natcover.annual %>%
   mutate(logresp=(log(grazed/ungrazed)))
 
 #visualize yearly log-response ratio
-ggplot(natcova.spread, aes(x=year, y=logresp)) +geom_bar(stat="identity", 
-                                                         position="dodge", aes(fill=native)) +
-  facet_wrap(~growthhabit)
+ggplot(natcova.spread, aes(x=year, y=logresp)) +
+  geom_bar(stat="identity", position="dodge", aes(fill=native)) +
+  facet_wrap(~growthhabit) +
+  labs(x="Year",y="log(Grazed/Ungrazed)")
 
-levels(natcover$native) <- c("Invasive", "Native")
-levels(natcover$growthhabit) <- c("Forb", "Grass")
-#levels(natcover$precinct) <-c("Off-Precinct", "Precinct", "Precinct")
 
-#Native and invasive Grasses and forbs %cover effect from grazing
+#Yearly comparison of mean % cover by group (quadrat averages)
 ggplot(subset(natcover.annual), aes(year, meancover)) + 
   geom_bar(aes(fill=grazetrt), stat="identity", position="dodge") +
   geom_errorbar(aes(ymin=(meancover-secover), ymax=meancover+secover, group=grazetrt), position="dodge", color = "black", lwd = .1) +
@@ -64,8 +66,8 @@ ggplot(subset(natcover.annual), aes(year, meancover)) +
   annotate("segment", x = 2012, xend = 2012, y = 65, yend = 46, colour = "black", size=.5, alpha=1, arrow=arrow(type="closed"))+ 
   theme(legend.position = "none")
 
-#Just native and invasives % cover effect from grazing
-ggplot(subset(natcover.annual), aes(year, meancover)) + 
+#Same as above, but sum up forbs and grasses (JUST OVERLAYING NOT SUMMING!)
+ggplot(natcover.annual, aes(year, meancover)) + 
   geom_bar(aes(fill=grazetrt), stat="identity", position="dodge") +
   geom_errorbar(aes(ymin=(meancover-secover), ymax=meancover+secover, group=grazetrt), position="dodge", color = "black", lwd = .1) +
   facet_grid(~native)+
@@ -75,12 +77,13 @@ ggplot(subset(natcover.annual), aes(year, meancover)) +
   annotate("segment", x = 2012, xend = 2012, y = 65, yend = 46, colour = "black", size=.5, alpha=1, arrow=arrow(type="closed"))+ 
   theme(legend.position = "none")
 
-#aggregated across years grouped by grazing, native, growthhabit
+#aggregated means (mean of ALL QUADRATS) across grazed years grouped by grazing, native, growthhabit
 natcover.agg <- natcover %>%
   filter(grazetrt=="grazed"|grazetrt=="ungrazed") %>%
   group_by(grazetrt, growthhabit, native, precinct) %>%
     summarize(meancover=mean(percover), secover=calcSE(percover))
 
+#plot mean and SE of all quads
 ggplot(natcover.agg, aes(native, meancover)) + 
   geom_bar(aes(fill=grazetrt), stat="identity", position="dodge") +
   facet_grid(precinct~growthhabit) +
@@ -89,7 +92,13 @@ ggplot(natcover.agg, aes(native, meancover)) +
   labs(x="",y="Percent Cover") + 
   theme(legend.position = "none")
 
-
+#calculate/visualize mean and SE of log response ratio over years. 
+LRR.agg <- natcova.spread %>%
+  group_by(native, growthhabit) %>%
+  summarize(meanLRR=mean(logresp), seLRR=calcSE(logresp))
+ggplot(LRR.agg, aes(native, meanLRR)) + 
+  geom_bar(stat="identity", position="dodge", aes(fill=growthhabit)) +
+  geom_errorbar(aes(ymin=(meanLRR-seLRR), ymax=meanLRR+seLRR, group=growthhabit), position="dodge", color = "black", lwd = .1)
 
 ##MIXED EFFECTS MODEL
 library(lme4)
