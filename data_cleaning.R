@@ -56,8 +56,6 @@ vegtog <- left_join(vegtog, plantkey, by="code")
 names(funckey) = c("form", "fullform", "lifecycle", "growthhabit")
 vegtog <- left_join(vegtog, funckey) %>%
   select(-native, -gkrprefer, -refcode)
-#create vegtog.sim, which will be used for non-biomass related assessments, adding biomass doubles counts
-vegtog.sim <-vegtog
 
 ### JOIN VEGTOG AND BIOMASS ###
 
@@ -117,7 +115,7 @@ vegtog <- vegtog %>%
   select(-June)
 
 # Clean up environment.
-rm(cowpies, funckey, plantkey, sitekey, vegdat)
+rm(cowpies, funckey, plantkey, sitekey, vegdat, biomass)
 
 names(vegtog)
 

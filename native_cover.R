@@ -22,7 +22,7 @@ theme_set(theme_bw(base_size = 16) + theme(text = element_text(size = 20)) +
                   panel.border = element_rect(colour = "black")))
 
 #calculate percent cover of native and invasive grasses and forbs by quadrat
-natcover <- vegtog.sim %>%
+natcover <- vegtog %>%
   mutate(percover=count/81*100) %>%
   mutate(native=substr(form, 1, 1)) %>%
   mutate(native=as.factor(native)) %>%
