@@ -8,46 +8,33 @@ library(vegan)
 
 
 ### LOAD THE DATA ###
-
-# make sure you first set your working directory to where the files are stored!
-list.files()
-
-#create vegdat, a data frame with collected vegetation data
+#Collected vegetation data from pin drops
 vegdat <- read.csv("veg plot data all.csv")
-#create sitekey, a dataframe that tells you what rodent and grazing treatment each site type from vegdat received
+#treatment for each site type in vegdat
 sitekey <- read_csv("site type key.csv")
-#create plantkey, a dataframe that tells you what species the species codes in vegdat refer to
+#what species the species codes in vegdat refer to
 plantkey <- read_csv("plant list.csv")
-# create funckey, a dataframe that tells you functional characteristics of species in plant list
+#functional characteristics of species in plant list
 funckey <- read_csv("plant forms.csv")
-#create biomass, a dataframe that tells you biomass measurements
+#biomass per quadrat
 biomass <- read_csv("veg plot biomass all years stacked.csv")
-#create cowpies, a dataframe that tells you how many cowpies per plot
+#cowpies per plot
 cowpies <- read_csv("cowpie counts all years.csv")
 
 
 
 ### JOIN VEGDAT AND SITE KEY TO CREATE VEGTOG ###
 
-#standardize column names first:
+#standardize column names:
 names(vegdat) = c("date", "quadrat", "observer", "site", "plot", "sitetype", "precipblock", "newquadrat", "preciptrt", "code", "precinct", "comments",
                   "count", "originalorder", "precinctcurrent", "year", "ID", "cover")
 names(sitekey) = c("sitetype", "grazetrt", "pasturetrt", "rodenttrt", "exclosure", "altsitetype")
-
-#join:
 vegtog <- left_join(vegdat, sitekey) %>%
-  
-  # remove columns we don't really need
   select(-date, -observer, -comments, -originalorder, ID, -altsitetype) %>%
-  
-  # filter non-species codes
   filter(code != "bare", code != "litter", code != "fresh dirt", code != "BARE", code != "HOLE", code != "bphole", code != "hole", code != "GOPHER", code != "MOSS",
          code != "ANT", code != "LITTER", code != "FRESH DIRT", code != "cowpie", code != "") %>%
-  
-  # make the case consistent for code
   mutate(code = tolower(code)) %>%
   mutate(precipblock = tolower(precipblock)) %>%
-  
   # remove the swain pasture that was never grazed
   filter(pasturetrt != "swain")%>%
   # remove rat exclosures in the remaining area, as well as species with no counts or NA counts.
@@ -55,40 +42,34 @@ vegtog <- left_join(vegdat, sitekey) %>%
 
 
 ### JOIN VEGTOG AND PLANTKEY ###
-
-#Standardize column names first
+#Standardize column names
 names(plantkey) = c("plantID", "family", "commonfamily", "shortcode", "code", "binomial", "genus", "species", "variety", "synonym", "common", "sink","salt",
                     "grass","desert","juniper","oak","seep","oldform","soda","central","western","mountain","elkhorn","teblor","flowermonth","flowercolor",
                     "native","gkrprefer","refcode","comments", "form")
-
-#remove unnecessary column from plantkey
 plantkey <- dplyr::select(plantkey, -shortcode, -sink, -salt, -grass, -desert, -juniper, -oak, 
                           -seep, -soda, -central, -western, -mountain, -elkhorn, -teblor, binomial, 
                           -commonfamily, -oldform, -common, -genus, -species, -flowercolor, -comments, -variety, -synonym, -family)
-
-# join vegtog and plantkey
 vegtog <- left_join(vegtog, plantkey, by="code")
 
 
 ### JOIN VEGTOG AND FUNCKEY ###
-
-#rename funckey columns
 names(funckey) = c("form", "fullform", "lifecycle", "growthhabit")
-
-#join
 vegtog <- left_join(vegtog, funckey) %>%
   select(-native, -gkrprefer, -refcode)
+#create vegtog.sim, which will be used for non-biomass related assessments, adding biomass doubles counts
 vegtog.sim <-vegtog
 
 ### JOIN VEGTOG AND BIOMASS ###
 
 #clean up and rename biomass columns
 biomass <- biomass %>%
-  select("year", "Block", "New Plot ID", "net weight", "season")
-names(biomass) = c("year", "plot", "quadrat", "netwt", "wtmonth")
+  select("year", "Site type", "Block", "New Plot ID", "net weight", "season")
+names(biomass) = c("year", "sitetype", "plot", "quadrat", "netwt", "wtmonth")
 biomass <- biomass %>%
-  filter(!is.na(year), !is.na(plot), !is.na(netwt), !is.na(quadrat), !is.na(wtmonth))%>%
-  mutate(wtmonth=ifelse(wtmonth=="Spring", "April", wtmonth))
+  filter(sitetype=="CR"|sitetype=="EP", !is.na(year), !is.na(plot), !is.na(netwt), !is.na(quadrat), !is.na(wtmonth))%>%
+  mutate(wtmonth=ifelse(wtmonth=="Spring", "April", wtmonth)) %>%
+  spread(wtmonth, netwt) %>%
+  select(-APRIL, -october, -april) ## We lose All the June measurements because their quad #s are 1-8 not "NO215" etc.
 
 
 #join (this doubles all entries in vegtog, giving them a spring and fall weight row)
@@ -132,7 +113,8 @@ vegtog <- vegtog %>%
   mutate(precinctcurrent=tolower(precinctcurrent)) %>%
   filter(precinctcurrent!="n not ok", precinctcurrent!="n not ok. active pruning.", 
          precinctcurrent!="n not okay", precinctcurrent!="not ok", precinctcurrent!="p not ok", 
-         precinctcurrent!="p not okay")
+         precinctcurrent!="p not okay")%>%
+  select(-June)
 
 # Clean up environment.
 rm(cowpies, funckey, plantkey, sitekey, vegdat)
