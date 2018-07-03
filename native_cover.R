@@ -101,9 +101,41 @@ ggplot(LRR.agg, aes(native, meanLRR)) +
   geom_errorbar(aes(ymin=(meanLRR-seLRR), ymax=meanLRR+seLRR, group=growthhabit), position="dodge", color = "black", lwd = .1)
 
 ##MIXED EFFECTS MODEL
+# There is a bit of a debate in mixed-effect world about p values
+# Technically better to use a t value, which Bates forces you to do with lme4
+# But nlme gives pseudo p values that are useful here
+
+# The lme4 way. Note nesting year in plot for repeated meausres
 library(lme4)
-grazing.model <- lmer(meancover~grazetrt*native + (1|year) + (1|plot), data=subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed"), REML=FALSE)
+grazing.model <- lmer(percover~grazetrt*native + (1|plot/year), data=subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed"), REML=FALSE)
 summary(grazing.model)
+
+# The nlme way. Note nesting year in plot for repeated meausres
+library(nlme)
+l <- lme(percover ~ grazetrt*native,  random = ~1|plot/year,  data=subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed"))
+summary(l)
+
+# To do your Tukey test use multcomp
+library(multcomp)
+
+# Need to remove the grazing factors that you don't include and don't want to test
+# Otherwise multcomp thinks these are empty factors and gets hung up
+natcover2 <- subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed") %>%
+  tbl_df() %>%
+  mutate(grazetrt = as.character(grazetrt))
+
+# For interactions, need to make a single variable that is the interaction term
+# And it must be a factor for multcomp
+natcover2$grznat <- as.factor(paste(natcover2$grazetrt, natcover2$native, sep = "_"))
+
+# Run the model with the interaction variable 
+l <- lme(percover ~ grznat,  random = ~1|plot/year,  data=natcover2)
+summary(l)
+
+# Run the Tukey test
+summary(glht(l, linfct=mcp(grznat="Tukey")))
+
+
 
 #Look for interaction effect
 grazing.null <- lmer(meancover~grazetrt+native + (1|year) + (1|plot), data=subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed"), REML=FALSE)
