@@ -104,6 +104,7 @@ ggplot(LRR.agg, aes(native, meanLRR)) +
 # There is a bit of a debate in mixed-effect world about p values
 # Technically better to use a t value, which Bates forces you to do with lme4
 # But nlme gives pseudo p values that are useful here
+#? is there a big difference in bare ground? precinct or graze, relativize? -sum up and compare
 
 # The lme4 way. Note nesting year in plot for repeated meausres
 library(lme4)
