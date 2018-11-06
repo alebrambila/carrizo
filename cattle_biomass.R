@@ -20,18 +20,18 @@ theme_set(theme_bw(base_size = 16) + theme(text = element_text(size = 20)) +
 #2, 3
 grazing_biomass<-vegtog %>%
   mutate(native=substr(form, 1, 1)) %>%
-  select(-flowermonth, -form, -fullform, -lifecycle, -growthhabit, -count, -preciptrt) %>%
+  dplyr::select(-flowermonth, -form, -fullform, -lifecycle, -growthhabit, -count, -preciptrt) %>%
   mutate(precinct=as.factor(precinct), year=as.factor(year)) %>%
   filter(!is.na(April), !is.na(October)) %>%
   group_by(year, site, quadrat, plot, precinct, grazetrt, April, October) %>%
   summarize() %>%
   filter(year==2008|year==2009|year==2010|year==2011|year==2016|year==2017) %>%
   group_by(year, precinct, grazetrt) %>%
-  mutate(massred=(April-October), meanred=mean(massred), sered=calcSE(massred))
+  mutate(massred=(April-October), meanred=mean(massred), sered=calcSE(massred), meanoct=mean(October), seoct=calcSE(October))
 
 levels(grazing_biomass$precinct) <- c("", "Off-Precinct", "Precinct", "Precinct")
 
-#4a. Biomass Consumed
+#4a. annual biomass Consumed
 ggplot(grazing_biomass)  +
   geom_bar(aes(x=year, y=meanred, fill=grazetrt), stat="identity", position="dodge") +
   facet_grid(~precinct) +
@@ -44,49 +44,90 @@ ggplot(grazing_biomass)  +
                 position="dodge", color = "black", lwd = .1)+
   theme(legend.position = "none")
 
-#4b. - LRR average native and invasive total cover across all quadrats within a year
-biomass.spread <- grazing_biomass %>%
-  select(-April, -October, -massred, -sered) %>%
-  filter(grazetrt=="grazed"|grazetrt=="ungrazed") %>%
-  select(-quadrat) %>%
-  group_by(year, precinct, grazetrt, meanred) %>%
-  summarize()%>%
-  spread(grazetrt, meanred) %>%
-  mutate(logresp=(log(grazed/ungrazed)))
-
-#visualize yearly log-response ratio
-ggplot(biomass.spread, aes(x=year, y=logresp)) +
-  geom_bar(stat="identity", position="dodge", aes(fill=precinct)) +
-  labs(x="Year",y="log(Grazed/Ungrazed)")
-
-
-
-
-##MIXED EFFECTS MODEL
-library(lme4)
-biomass.model <- lmer(biomass~grazetrt+wtmonth + (1|year) + (1|plot), data=subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed"), REML=FALSE)
-summary(grazing.model)
-
-#Look for interaction effect
-grazing.null <- lmer(meancover~grazetrt+native + (1|year) + (1|plot), data=subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed"), REML=FALSE)
-anova(grazing.null,grazing.model)
-
-biomass.agg <-grazing_biomass %>%
-  group_by(grazetrt, precinct, wtmonth) %>%
-  summarize(meanwt=mean(netwt), sewt=calcSE(netwt))
-
-biomas.agg <-grazing_biomass %>%
-  group_by(grazetrt, wtmonth)%>%
-  summarize(meanwt=mean(netwt), sewt=calcSE(netwt))
-  
-
-ggplot(biomass.agg, aes(grazetrt, meanwt)) + 
-  geom_bar(aes(fill=grazetrt), stat="identity", position="dodge") +
-  facet_grid(wtmonth~precinct) +
-  geom_errorbar(aes(ymin=(meanwt-sewt), ymax=meanwt+sewt, group=grazetrt), position="dodge", color = "black", lwd = .1) +
-  scale_fill_manual("Result", values = c("brown","darkblue"))+
-  labs(x="",y="Biomass") + 
+#4ai.Annual residual biomass
+ggplot(grazing_biomass)  +
+  geom_bar(aes(x=year, y=meanoct, fill=grazetrt), stat="identity", position="dodge") +
+  facet_grid(~precinct) +
+  scale_fill_manual("Treatment", values = c("brown","darkblue"), 
+                    labels = c("Grazed","Ungrazed")) +
+  labs(x="Year",y="Residual Biomass (lb/quadrat)") + 
+  geom_errorbar(aes(x=year, ymin=(meanoct-seoct), 
+                    ymax=meanoct+seoct, 
+                    group=grazetrt), 
+                position="dodge", color = "black", lwd = .1)+
   theme(legend.position = "none")
+
+#aggregated residual biomass
+agg.biomass <- vegtog %>%
+  mutate(native=substr(form, 1, 1)) %>%
+  dplyr::select(-flowermonth, -form, -fullform, -lifecycle, -growthhabit, -count, -preciptrt) %>%
+  mutate(precinct=as.factor(precinct), year=as.factor(year), grazetrt=as.factor(grazetrt)) %>%
+  filter(!is.na(April), !is.na(October)) %>%
+  group_by(year, site, quadrat, plot, precinct, grazetrt, April, October) %>%
+  summarize() %>%
+  filter(year==2008|year==2009|year==2010|year==2011|year==2016|year==2017) %>%
+  group_by(precinct, grazetrt) %>%
+  mutate(meanoct=mean(October), seoct=calcSE(October))
+levels(agg.biomass$precinct) <- c("", "Off-Precinct", "Precinct", "Precinct")
+levels(agg.biomass$grazetrt) <- c("Grazed", "Ungrazed")
+  
+ggplot(agg.biomass, aes(grazetrt, meanoct)) + 
+  geom_bar(aes(fill=grazetrt), stat="identity", position="dodge") +
+  facet_grid(~precinct) +
+  geom_errorbar(aes(ymin=(meanoct-seoct), ymax=meanoct+seoct, group=grazetrt), position="dodge", color = "black", lwd = .1) +
+  scale_fill_manual("Result", values = c("brown","darkblue"), labels=c("Grazed", "Ungrazed"))+
+  labs(x="",y="Residual Biomass (lb/quadrat)") + 
+  theme(legend.position = "none")
+
+#4b. - LRR residual biomass
+biomass.spread <- grazing_biomass %>%
+  dplyr::select(-April, -October, -massred, -sered) %>%
+  filter(grazetrt=="grazed"|grazetrt=="ungrazed") %>%
+  dplyr::select(-quadrat) %>%
+  group_by(year, precinct, grazetrt, meanoct) %>%
+  summarize()%>%
+  spread(grazetrt, meanoct) %>%
+  mutate(logresp=(log(grazed/ungrazed))) %>%
+  group_by(precinct) %>%
+  summarize(meanLRR=mean(logresp), seLRR=calcSE(logresp))
+
+#visualizelog-response ratio
+ggplot(biomass.spread, aes(precinct, meanLRR)) + 
+  geom_bar(stat="identity", position="dodge", aes(fill=precinct)) +
+  geom_errorbar(aes(ymin=(meanLRR-seLRR), ymax=meanLRR+seLRR), position="dodge", color = "black", lwd = .1)+
+  scale_fill_manual("", values = c("brown","darkblue"))+
+  labs(x="",y="Log Response Ratio")
+
+### MIXED EFFECTS MODEL ###
+# To do your Tukey test use multcomp
+library(multcomp)
+
+# Need to remove the grazing factors that you don't include and don't want to test
+# Otherwise multcomp thinks these are empty factors and gets hung up
+mem.biomass <- subset(grazing_biomass, grazetrt=="grazed"|grazetrt=="ungrazed") %>%
+  dplyr::select(-April, -massred, -meanred, -sered, -meanoct, -seoct) %>%
+  tbl_df() %>%
+  mutate(grazetrt = as.character(grazetrt))
+
+# For interactions, need to make a single variable that is the interaction term
+# And it must be a factor for multcomp
+mem.biomass$grzpre <- as.factor(paste(mem.biomass$grazetrt, mem.biomass$precinct, sep = "_"))
+
+# Run the model with the interaction variable 
+l <- lme(October ~ grzpre,  random = ~1|plot/quadrat/year,  data=mem.biomass)
+summary(l)
+
+# Run the Tukey test
+summary(glht(l, linfct=mcp(grzpre="Tukey")))
+
+
+##MIXED EFFECTS MODEL #OLD
+#library(lme4)
+#biomass.model <- lmer(biomass~grazetrt+wtmonth + (1|year) + (1|plot), data=subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed"), REML=FALSE)
+#summary(grazing.model)
+#Look for interaction effect
+#grazing.null <- lmer(meancover~grazetrt+native + (1|year) + (1|plot), data=subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed"), REML=FALSE)
+#anova(grazing.null,grazing.model)
 
 #rarifications - diversity (stem densities) - species # curve, m SAR, IAR - Josh Grenoff, Carrizo paper
 #create SAR and situate on it based on richness/number

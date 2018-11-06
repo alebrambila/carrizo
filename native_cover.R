@@ -63,7 +63,7 @@ ggplot(subset(natcover.annual), aes(year, meancover)) +
   scale_fill_manual("Result", values = c("grey","brown", "grey", "darkblue"), 
                     labels = c("No Grazing", " Grazed", "No Grazing", "Ungrazed")) +
   labs(x="Year",y="Percent Cover") +
-  annotate("segment", x = 2012, xend = 2012, y = 65, yend = 46, colour = "black", size=.5, alpha=1, arrow=arrow(type="closed"))+ 
+ # annotate("segment", x = 2012, xend = 2012, y = 50, yend = 40, colour = "black", size=.25, alpha=1, arrow=arrow(type="closed"))+ 
   theme(legend.position = "none")
 
 #Same as above, but sum up forbs and grasses (JUST OVERLAYING NOT SUMMING!)
@@ -74,19 +74,20 @@ ggplot(natcover.annual, aes(year, meancover)) +
   scale_fill_manual("Result", values = c("grey","brown", "grey", "darkblue"), 
                     labels = c("No Grazing", " Grazed", "No Grazing", "Ungrazed")) +
   labs(x="Year",y="Percent Cover") +
-  annotate("segment", x = 2012, xend = 2012, y = 65, yend = 46, colour = "black", size=.5, alpha=1, arrow=arrow(type="closed"))+ 
+  annotate("segment", x = 2012, xend = 2012, y = 50, yend = 40, colour = "black", size=.25, alpha=1, arrow=arrow(type="closed"))+ 
   theme(legend.position = "none")
 
 #aggregated means (mean of ALL QUADRATS) across grazed years grouped by grazing, native, growthhabit
 natcover.agg <- natcover %>%
   filter(grazetrt=="grazed"|grazetrt=="ungrazed") %>%
-  group_by(grazetrt, growthhabit, native, precinct) %>%
-    summarize(meancover=mean(percover), secover=calcSE(percover))
+  group_by(grazetrt, growthhabit, native) %>%
+    summarize(meancover=mean(percover), secover=calcSE(percover)) %>%
+  ungroup()
 
 #plot mean and SE of all quads
 ggplot(natcover.agg, aes(native, meancover)) + 
   geom_bar(aes(fill=grazetrt), stat="identity", position="dodge") +
-  facet_grid(precinct~growthhabit) +
+  facet_wrap(~growthhabit) +
   geom_errorbar(aes(ymin=(meancover-secover), ymax=meancover+secover, group=grazetrt), position="dodge", color = "black", lwd = .1) +
   scale_fill_manual("Result", values = c("brown","darkblue"))+
   labs(x="",y="Percent Cover") + 
@@ -96,26 +97,25 @@ ggplot(natcover.agg, aes(native, meancover)) +
 LRR.agg <- natcova.spread %>%
   group_by(native, growthhabit) %>%
   summarize(meanLRR=mean(logresp), seLRR=calcSE(logresp))
-ggplot(LRR.agg, aes(native, meanLRR)) + 
-  geom_bar(stat="identity", position="dodge", aes(fill=growthhabit)) +
-  geom_errorbar(aes(ymin=(meanLRR-seLRR), ymax=meanLRR+seLRR, group=growthhabit), position="dodge", color = "black", lwd = .1)
+ggplot(LRR.agg, aes(growthhabit, meanLRR)) + 
+  geom_bar(stat="identity", position="dodge", aes(fill=native)) +
+  geom_errorbar(aes(ymin=(meanLRR-seLRR), ymax=meanLRR+seLRR, group=native), position="dodge", color = "black", lwd = .1)+
+  scale_fill_manual("", values = c("brown","darkblue"))+
+  labs(x="",y="Log Response Ratio")
 
 ##MIXED EFFECTS MODEL
 # There is a bit of a debate in mixed-effect world about p values
 # Technically better to use a t value, which Bates forces you to do with lme4
 # But nlme gives pseudo p values that are useful here
 #? is there a big difference in bare ground? precinct or graze, relativize? -sum up and compare
-
 # The lme4 way. Note nesting year in plot for repeated meausres
-library(lme4)
-grazing.model <- lmer(percover~grazetrt*native + (1|plot/quadrat/year), data=subset(natcover, ( grazetrt=="grazed"|grazetrt=="ungrazed") &  growthhabit == "Grass"), REML=FALSE)
-summary(grazing.model)
-
+#library(lme4)
+#grazing.model <- lmer(percover~grazetrt*native + (1|plot/quadrat/year), data=subset(natcover, ( grazetrt=="grazed"|grazetrt=="ungrazed") &  growthhabit == "Grass"), REML=FALSE)
+#summary(grazing.model)
 # The nlme way. Note nesting year in plot for repeated meausres
-library(nlme)
-l <- lme(percover ~ grazetrt*native,  random = ~1|plot/quadrat/year,  data=subset(natcover, (grazetrt=="grazed"|grazetrt=="ungrazed") &  growthhabit == "Grass"))
-summary(l)
-
+#library(nlme)
+#l <- lme(percover ~ grazetrt*native,  random = ~1|plot/quadrat/year,  data=subset(natcover, (grazetrt=="grazed"|grazetrt=="ungrazed") &  growthhabit == "Grass"))
+#summary(l)
 
 # To do your Tukey test use multcomp
 library(multcomp)
@@ -131,7 +131,7 @@ natcover2 <- subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed") %>%
 natcover2$grznat <- as.factor(paste(natcover2$grazetrt, natcover2$native, sep = "_"))
 
 # Run the model with the interaction variable 
-l <- lme(percover ~ grznat,  random = ~1|plot/quadrat/year,  data=subset(natcover2,  growthhabit == "Grass"))
+l <- lme(percover ~ grznat,  random = ~1|site/quadrat/year,  data=subset(natcover2,  growthhabit == "Grass"))
 summary(l)
 
 # Run the Tukey test
@@ -139,9 +139,9 @@ summary(glht(l, linfct=mcp(grznat="Tukey")))
 
 
 
-#Look for interaction effect
-grazing.null <- lmer(meancover~grazetrt+native + (1|year) + (1|plot), data=subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed"), REML=FALSE)
-anova(grazing.null,grazing.model)
+#Look for interaction effect (old way)
+#grazing.null <- lmer(meancover~grazetrt+native + (1|year) + (1|plot), data=subset(natcover, grazetrt=="grazed"|grazetrt=="ungrazed"), REML=FALSE)
+#anova(grazing.null,grazing.model)
 
 
 ### PRECINCT INTERACTION FOR INVASIVE GRASSES

@@ -1,0 +1,734 @@
+---
+title: "Carrizo Cattle"
+author: "Alejandro Brambila"
+date: "3/16/18"
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+    
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(vegan)
+library(float)
+knitr::opts_chunk$set(echo = TRUE, out.extra = '', message=FALSE, error=FALSE)
+
+```
+
+## I. Introduction
+
+### System Background and Previous Work
+In western grasslands, two categories of animals often play a major role as keystone species; burrowers and grazers (Wills and Landis 2017; Hobbs and Huenneke 1992). A keystone species is one that has particularly strong interactions with other species, leading to an outsized effect on community structure (Jones 1997). Some keystone species are referred to as “ecological engineers”, particularly when they affect their community through physical or structural modifications (Jones et al. 2010; Hastings et al. 2007). Often, the type of impact that ecosystem engineers have is a form of disturbance, particularly as a predictable disturbance regime. According to the intermediate disturbance hypothesis(White and Pickett 1985; Pickett and White 1985), moderate levels of disturbance can increase diversity, particularly where disturbance leads to habitat heterogeneity. 
+
+The purpose of my research is to investigate how two disturbance regimes imposed by keystone burrowers and grazers combine to affect plant community structure and diversity in Carrizo Plain, an arid grassland in Southern California.  The Carrizo Plains Ecosystem Project (CPEP) is a broad community-based, long-term study co-lead by Drs. Laura Prugh, Justin Brashares, and Katie Suding. The project has many goals, but is primarily centered around the role of the endangered Giant Kangaroo Rat (GKR) in structuring the ecosystem. Much work has been done already looking at the effect of GKR on aspects of community structure and dynamics using exclusion treatments (Gurney, Prugh, and Brashares 2015; Prugh and Brashares 2012). 
+
+Through both their burrowing action and direct consumption of plant materials, various rodents have been shown to have significant impacts on plant communities (Hobbs and Huenneke 1992). Burrowers such as gophers, prairie dogs, and kangaroo rats engineer their ecosystem by forming mounds of soil around their burrows with altered soil characteristics (Guo 1996; Canals, Herman, and Firestone 2003). Especially in the case of kangaroo rats (one of which, the Giant Kangaroo Rat (GKR), is the engineer in our study system) these mounds are large, shallow and well aerated (Best 1988). Rodent mounds are characterized by being areas of high soil disturbance, increased nutrient availability, and lower moisture content as they are better drained soils (Davidson and Lightfoot 2006). Generally, different species of plants are more successful on mounds, especially those that are fast growing annuals, grasses, and better dispersers as measured through seed size (Guo 1996; Bangert and Slobodchikoff 2006). In the arid grasslands of our study system in southern California, the GKR has an impressive visible presence. It forms evenly spaced mounds over six meters in diameter spread evenly across the landscape. On these mounds, as found in previous studies, plant composition is distinct and while species richness does not change, productivity is significantly higher (Prugh and Brashares 2012). The same study by Prugh and Brashares also found that GKR engineering effects were more significant than simple herbivory for structuring plant communities, justifying our approach focusing on engineering effects here.
+
+In addition to excluding GKR, the CPEP experimental design also includes a treatment for cattle exclosure, as part of the research site is regularly grazed when conditions allow. Alongside burrowers, grazers also play a keystone role in many grassland communities. Grazer herbivory and engineering effects (trampling disturbance, nutrient redistribution) have not been disentangled as they have been for GKR.  While it’s presumable that engineering effects play a role in the effect cattle have on plant communities, I will be considering their effects holistically, which may include herbivory, engineering, and seed dispersal through hooves and fur (Hobbs and Huenneke 1992). As the effects of GKR on the plant community have already been quantified, this study's premise is to explore the interaction of GKR engineering effects and the standard implemented grazing program. It has been shown that multiple rodents have distinct and additive effects, and it can be expected that cattle and rodent effects will similarly compound where both are present. This expectation is also supported by findings that rodent engineering effects are also significant in low-perennial degraded grasslands as is often found in high-intensity grazing situations (Davidson and Lightfoot 2006).  While the experiment is not completely crossed (not allowing for the study of the direct interaction of cattle and GKR effects), we can study the effect that grazing has on community structure and dynamics holding GKR presence constant. This also luckily happens to be the most relevant measure for management, as realistically GKR would not be excluded in any real-world scenario, but the on-off mound dynamics will remain in play.
+
+
+### Purpose of Study
+This study takes an applied approach to quantify the additive effects of cattle grazing on an engineered grassland.  The overarching goal of the study is to assess whether grazing modifies natural plant communities at Carrizo Plain to an extent to which managers should be concerned.  Aspects of community dynamics considered include the community relationship to overarching factors such as precipitation, grazing effects on diversity at different scales, percent native cover, specific target species of concern, and biomass legacies.  
+
+* *Paragraph on relationship to precipitation in actual paper. Left out of class analysis. Precipitation is a major driving factor in these systems. Essentially, we have already decided that cattle are bad to have on in dry years and they are restricted under the current management regime.  We are trying to discern if cattle are a problem in wet years.  Back this up by showing diversity trend over years with which have cattle and not. * 
+
+The engineering effects of the GKR set up a strikingly heterogeneous habitat at Carrizo Plain over which to examine the effects of grazing on diversity.  Because of the patchiness of this system, it is important to be clear about how diversity is defined. Diversity can be divided into three components, alpha, or local diversity, gamma, or full site diversity, and beta, or species turnover across the site (Tuomisto 2010). All of these will be explored with this study. 
+
+Heterogeneity is primarily a measure of changing conditions across a site, and as such it’s most closely related to the concept of beta diversity. In studying a prairie dog ecosystem, Bangert and Slobodchikoff (2006) suggest that because of the spatial heterogeneity caused by burrowing rodents, beta diversity is a better measure than alpha diversity to understand the dynamics of similar systems. This is supported by the study of a variably heterogeneous chaparral plant community where increased heterogeneity had differential effects on each type of diversity.  There is near consensus on the fact that increasing heterogeneity increases the species diversity of a system (Chesson 2000; Amarasekare 2003; Hortal et al. 2009; Stein, Gerstner, and Kreft 2014). A dissenting view is presented by Stevens (2002) who suggests that the average amount of limiting resource in the system is what actually limits diversity, not heterogeneity in that resource, but this study uses light as the limiting resource, and light can be seen more accurately as a secondary resource, where availability is limited due more to biotic than abiotic factors. Rodent engineering is by default an activity that increases heterogeneity, and increases in diversity due to rodent engineering activity have been described in a beaver-engineered system (Wright, Jones, and Flecker 2002). 
+
+Mounds are formed in discrete patches, with different associated species as described above. The effect on heterogeneity by grazing is more complex. Depending on spatial and temporal aspects of a grazing regime, it can lead to heterogeneity or homogeneity (Hobbs and Huenneke 1992). Cattle have strong feeding presences, and at moderate grazing levels they often align with the competitively dominant grasses, thus lowering their competitive advantage and potentially increasing alpha diversity.  As an example of the variability of alpha diversity, Guo (1996) found relatively lower local diversity both on and off bannertail kangaroo rats relative to the transition area between the two. Lowest alpha diversity was found on abandoned mounds.  If ranges are managed identically and intensively, cattle can wipe out their preferential foods (Derner et al. 2009). Particularly in grasslands with a long history of grazing, traditional grazing practices that encourage cattle moving between patches of their preferred food leads to increased heterogeneity as they move throughout the system (Fuhlendorf and Engle 2001). Although we do not necessarily expect cattle to increase beta diversity, with increasing beta diversity we should expect to see more niches to fill in the system, and therefore more gamma diversity (Harrison 1997).
+
+Disturbance is a key mechanism for the increase of habitat heterogeneity in both mound formation and grazing, although for systems with a long history of grazing this should not be considered a disturbance and instead a changed regime could be (Hobbs and Huenneke 1992). Hence, the history of a landscape has significant effects on its current composition and must be considered (Motzkin et al. 1999). At low disturbance levels, highly competitive species dominate. As disturbance increases, early-successional species colonize disturbed patches across the system. Disturbance has a positive effect on the invaisibility of a community, as it provides open resource space for new species to colonize (Hobbs and Huenneke 1992). In a separate grassland study, gophers were found to allow the invasion of a grassland, but the invaders were “virtually absent” off-mound, perhaps due to the increased stability of heterogeneous systems (Oliver et al. 2010; Hobbs and Mooney 1985, 1991). Because invasion is a heightened concern in disturbance-regime systems, diversity is interesting but insufficient as a tool to understand ecosystem health in a management context.  Giant Kangaroo Mound formation is a natural process, but one that favors disturbance adapted species.  Many non-native and invasive species are successful because they are highly adapted to disturbance, and GKR mounds have already been shown to house higher proportions of non-native and invasive species (Gurney, Prugh, and Brashares 2015).
+
+In western grasslands there are invasive weeds that are of particular concern to land managers.  Not all of these are present at Carrizo Plain, but two important species listed on the California Invasive Plant Council Inventory are Red Brome, *Bromus madritensis ssp. rubens*, and Common Mediterranean Grass, *Schismus barbatus/arabicus*.  Both grasses quick dispersing annuals that alter soil nutrient cycles through fire frequency and shift shrub and perennial dominated communities as a whole towards annual grasslands (Brooks 2003a, b). If cattle are having a significant effect on the abundance or spread of these species it would be of particular interest to the Bureau of Land Management, which is charged with maintaining Carrizo Plain. 
+
+* *Paragraph on legacy biomass in actual paper.  Left out of class analysis.* 
+
+### Questions and Hypotheses
+
+ * *Hypothesis on precipitation in actual paper. Left out for this analysis. Can we include dry years in our study or should we limit it to only the wet years when cattle were present. I expect we will have to limit it to wet years, especially if cattle presence and precipitation covary too much and/or precipitation is too great of a factor that it overwhelms cattle presence.*
+
+1. How does grazing affect plant community diversity and heterogeneity?  Specifically, diversity will be broken down into its three components.
+* Alpha diversity measured as number of species/quadrat is expected to increase through the reduction of competitive dominants both on and off-mound.
+* Beta diversity measured as difference in community composition among quadrats is expected to decrease through homogenization of on and off-mound sites. 
+* Gamma diversity as measured by total number of species in a plot is expected to remain stable. 
+
+2. What is the effect of cattle on percent native cover? Native cover and biomass is expected to decrease in the presence of grazing disturbance.  Quick-growing colonizers, many of which are non-native, will gain an advantage in grazed plots.
+
+3. How are species of concern affected by cattle grazing? Grazing will increase the amount of quadrats where invasives occur, as well as biomass and percent cover. 
+
+* *Hypothesis on legacy biomass in actual paper.  Left out of class analysis.* 
+
+## II. Approach
+###Dataset Identification
+Relevant Carrizo Plain Ecosystem Project data is contained in six Excell spreadsheets collected by the Brashares lab at UC Berkeley. Data was collected starting in 2007 and continues to be collected yearly.  The experimental design consists of 1m2 quadrats nested within 10m2 plots.  Grazing treatments are applied at the plot level through cattle exclosures. Giant Kangaroo Rat engineering mound treatments are applied at the quadrat level by intentionally locating quadrats on or off-mound. For this experiment, quadrat and plots are representative of alpha and gamma diversity respectively.  Each spreadsheet contains a distinct set of relevant variables.
+
+* Individual plant observations are recorded in "veg plot data all.xlsx".  This is the main data source consisting of tens of thousands of individual plant observations. Out of eighteen variables, columns of interest are highlighted: Date, **New Plot ID**, Observer, Site, **Block**, **Site type** , Precipitation, Block, New Quadrat, **Precipitation Treatment**, **6 letter code**, **Precinct?**, Comments, **Count**, original order, **Current Precinct**, **year**, id, and **Occular estimate**
+
+* Total plant biomass at the quadrat level is recorded in “veg plot biomass all years stacked.xlsx”. Variables include: ID, **Block**, **New Plot ID**, Site, Site type, Precinct?, Quadrat, Precipitation Block, bag weight, Precipitation treatment, total weight, **net weight**, height(mm), Comments, season, original order, session, **year**, and Field18. 
+
+* The file, "site type key.xslx" uses plots as the observation level and contains data to interpret site codes used in "veg plot data all.xslx". Variables include: **site type**, **grazing treatment**, pasture treatment, rodent treatment, **exclosure**, and alternate site type.
+
+* Plant ID codes in "veg plot biomass all years stacked.xlsx" are interpreted by "plant list.xslx", which contains rows for each unique species encountered along with specific characteristics of that species such as: ID, **family**, common family, 4 letter code, **6 letter code**, **SCIENTIFIC NAME**, **GENUS**, **SPECIES**, **SUBSPECIES**, **SYNONYM**, COMMON NAME, sink, salt, grass, desert, juniper, oak, seep, **form**, soda, central, western, mountain, elkhorn, teblor, flowering month, flower color, **native?**, gkr prefer?, reference code, comments, and **newform**.
+
+* The spreadsheet, "plant forms.xslx" interprets the column **newform** from "plant list.xslx". This table has one row for each unique combination of forms found in **newform**, with associated variables: **form**, **description**, **annual vs perennial**, and **grass vs forb**.
+
+* An measure of grazing intensity at the plot level, cowpie counts, can is found in "cowpie counts all years.xslx".  For grazed sites and years, this file provides cowpie counts along transects inthe following format: alt site type, **plot**, block, **cowpies**, **transect line**, comments, date, **year**, ID, obs.
+
+### Workflow Plan
+Data will be tidied and cleaned through the creation of a master dataframe, *vegtog* containing all relevant variables at the individual plant observation level. Data for each analysis will be subset from *vegtog*.  
+
+1. Read in data.
+```{r include=FALSE}
+### load libraries to use
+library(tidyverse)
+library(vegan)
+
+### load the data
+vegdat <- read_csv("veg plot data all.csv")
+sitekey <- read_csv("site type key.csv")
+plantkey <- read_csv("plant list.csv")
+funckey <- read_csv("plant forms.csv")
+biomass <- read_csv("veg plot biomass all years stacked.csv") 
+cowpies <- read_csv("cowpie counts all years.csv")
+
+```
+
+2. Join *vegdat* and *sitekey* to create a master dataframe, *vegtog*.  Remove the non-grazed Swain pasture and non-species observations:
+```{r echo=FALSE}
+### Join vegdat and sitekey by sitetype to create vegtog ###
+
+#standardize column names first:
+names(vegdat) = c("date", "quadrat", "observer", "site", "plot", "sitetype", "precipblock", 
+                  "newquadrat", "preciptrt", "code", "precinct", "comments",
+                  "count", "originalorder", "precinctcurrent", "year", "ID", "cover")
+names(sitekey) = c("sitetype", "grazetrt", "pasturetrt", "rodenttrt", "exclosure", "altsitetype")
+
+#join:
+vegtog <- left_join(vegdat, sitekey) %>%
+  
+  # remove columns we don't really need
+  select(-date, -observer, -comments, -originalorder, ID, -altsitetype) %>%
+  
+  # filter non-species codes
+  filter(code != "bare", code != "litter", code != "fresh dirt", code != "BARE", 
+         code != "HOLE", code != "bphole", code != "hole", code != "GOPHER", code != "MOSS",
+         code != "ANT", code != "LITTER", code != "FRESH DIRT", code != "cowpie", code != "") %>%
+  
+  # make the case consistent for code
+  mutate(code = tolower(code)) %>%
+  mutate(precipblock = tolower(precipblock)) %>%
+  
+  # remove the swain pasture that was never grazed
+  filter(pasturetrt != "swain")%>%
+  # remove rat exclosures in the remaining area, as well as species with no counts or NA counts.
+  filter (count !=0, !is.na(count), exclosure != "CW rat excl")
+
+names(vegtog)
+
+```
+
+3. Join *vegtog* and *plantkey*:
+```{r echo=FALSE}
+### Join vegtog and plantkey.
+
+#Standardize column names first
+names(plantkey) = c("plantID", "family", "commonfamily", "shortcode", "code", "binomial", "genus", "species", "variety", "synonym", "common", "sink","salt",
+                    "grass","desert","juniper","oak","seep","oldform","soda","central","western","mountain","elkhorn","teblor","flowermonth","flowercolor",
+                    "native","gkrprefer","refcode","comments", "form")
+
+#remove unnecessary column from plantkey
+plantkey <- dplyr::select(plantkey, -shortcode, -sink, -salt, -grass, -desert, -juniper, -oak, 
+                          -seep, -soda, -central, -western, -mountain, -elkhorn, -teblor, binomial, 
+                          -commonfamily, -oldform, -common, -genus, -species, -flowercolor, -comments, -variety, -synonym, -family)
+
+# join vegtog and plantkey
+vegtog <- left_join(vegtog, plantkey, by="code")
+ 
+names(vegtog)
+```
+
+4. Join *vegtog* and *funckey*:
+```{r echo=FALSE}
+### Join vegtog and funckey
+
+#rename funckey columns
+names(funckey) = c("form", "fullform", "lifecycle", "growthhabit")
+
+#join
+vegtog <- left_join(vegtog, funckey) %>%
+  select(-native, -gkrprefer, -refcode)
+
+names(vegtog)
+```
+
+5. Join *vegtog* and *biomass*:
+```{r echo=FALSE}
+### JOIN VEGTOG AND BIOMASS ###
+
+#clean up and rename biomass columns
+biomass <- biomass %>%
+  select("year", "Block", "New Plot ID", "net weight", "season")
+names(biomass) = c("year", "plot", "quadrat", "netwt", "wtmonth")
+biomass <- biomass %>%
+  filter(!is.na(year), !is.na(plot), !is.na(netwt), !is.na(quadrat), !is.na(wtmonth))
+
+#join
+vegtog <- left_join(vegtog, biomass)
+names(vegtog)
+
+
+```
+
+6. Join *vegtog* and *cowpies*. Cowpies need to be aggregated to a plot level basis first.
+```{r echo=FALSE}
+### JOIN VEGTOG AND COWPIES ###
+
+#clean up and rename cowpies
+cowpies <-cowpies %>%
+  select(year, "alt site type", block, cowpies)
+names(cowpies)<-c("year", "type","block", "cowpies")
+cowpies <-cowpies %>%
+  mutate(site = paste(type, "R", block, sep=""))%>%
+  select(-type, -block)
+
+##sum cowpies by site and year
+cowpies <- aggregate(cowpies$cowpies, by=list(cowpies$site, cowpies$year),  FUN=sum)
+names(cowpies) <- c("site", "year", "cowpies")
+
+#join by site and year
+vegtog <- left_join(vegtog, cowpies)
+
+```
+
+7. Cleanup. Precipitation treatments with irrigation or shelter are removed. 
+
+```{r echo=FALSE}
+
+###CLEANUP###
+
+#remove columns
+vegtog <- vegtog %>%
+  select(-sitetype, -precipblock, -newquadrat, -ID, -pasturetrt, -rodenttrt, -plantID, -exclosure)
+
+vegtog <- vegtog[c("year", "site", "plot", "quadrat", "precinct", "precinctcurrent", "preciptrt", 
+                   "grazetrt", "cowpies", "netwt", "wtmonth", "code", "binomial", "count", "cover", "flowermonth", 
+                   "form", "fullform", "lifecycle", "growthhabit")]
+
+#remove precip treatments that have irrigation or shelter.  get rid of other unnecessary columns
+vegtog <- vegtog %>%
+  mutate(preciptrt=tolower(preciptrt)) 
+vegtog$preciptrt <- ifelse( is.na(vegtog$preciptrt), "before", vegtog$preciptrt)
+
+
+  #get rid of anything in precinct current that is "NOT OK"
+vegtog$precinctcurrent <- ifelse( is.na(vegtog$precinctcurrent), "ok", vegtog$precinctcurrent)
+vegtog <- vegtog %>%
+  mutate(precinctcurrent=tolower(precinctcurrent)) %>%
+  filter(precinctcurrent!="n not ok", precinctcurrent!="n not ok. active pruning.", 
+         precinctcurrent!="n not okay", precinctcurrent!="not ok", precinctcurrent!="p not ok", 
+         precinctcurrent!="p not okay")
+
+# Clean up environment.
+rm(biomass, cowpies, funckey, plantkey, sitekey, vegdat)
+
+
+##FN for Calculating SE
+calcSE<-function(x){
+  x <- x[!is.na(x)]
+  sd(x)/sqrt(length(x))
+}
+
+str(vegtog)
+
+```
+
+The experimental design consists of two treatments.  The first treatment level is cattle presence, and the second level is on or off mound.  Ten plots were constructed for cattle exclosure (140m2) and ten paired control plots were set up 60m away (total 20 plots). Within each plot, there were initially four repetitions of 1m2 quadrats on precinct and four off, but precincts (mounds) moved over time. In each quadrat observations were made with 81 pin drops to ID vegetation in the spring before cows went on. Analysis will be performed on summarized variants of the dataframe vegtog.
+
+
+Exploratory analysis (Fig. 1), while not demonstrating causality, provides evidence that grazing has the potential to play a structuring role in plant communities.  Particularly interesting are species that have very skewed or exclusive distributions in grazed or ungrazed quadrats. Further analyses are explored in the next section.
+
+
+
+```{r echo=FALSE,  fig.height = 6, fig.width = 8, fig-1, fig.cap="Proportions of all observations by species across grazing treatments."}
+##Visualize uneven distribution of species across the treatments
+ggplot(vegtog) +geom_bar(aes(x=reorder(binomial, count), fill=grazetrt), position = "fill") +
+  coord_flip() + theme_classic() + ggtitle("Species Grazing Correlation")+
+  xlab("Species")+ylab("Proportion") +
+  scale_fill_discrete(name="", labels =(c("Grazed", "Ungrazed")))+
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=14), title=element_text(size=16),
+        axis.text.x = element_text(size=0))                
+```
+
+\pagebreak 
+
+## III. Results
+
+### Alpha diversity (three plots)
+
+```{r echo=FALSE}
+
+##FN for Calculating SE
+calcSE<-function(x){
+  x <- x[!is.na(x)]
+  sd(x)/sqrt(length(x))
+}
+
+# calculate quad (alpha) trends
+trends_alpha <- vegtog%>%
+  group_by(year, grazetrt, precinct, quadrat) %>%
+  summarize(richness=length(unique(code))) %>%
+  group_by(year, grazetrt, precinct) %>%
+  summarize(meanrich=mean(richness), SE=calcSE(richness))
+```
+
+
+```{r echo=FALSE, fig-2, fig.cap="Alpha richness trends over time."}
+#plot quad (alpha) trends
+ggplot(trends_alpha, aes(color=grazetrt))+ geom_line(aes(x=year, y=meanrich)) +
+  facet_wrap(~precinct, labeller=) +geom_errorbar(aes(x=year, ymin=meanrich-SE, ymax=meanrich+SE))+
+  theme_classic() + ggtitle("Alpha Richness Trend (±SE) ")+
+  xlab("Year")+ylab("Species Richness") +
+  labs(col="", values =(c("Grazed", "Ungrazed")))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+ 
+
+```
+
+
+```{r echo=FALSE}
+#Grazing treatment by quadrat (alpha) interaction with precinct
+alpha <- vegtog %>%
+  filter( year!=2007, year!=2008, year!=2013, year!=2014, year!=2015, year!=2016) %>%
+  group_by(year, grazetrt, quadrat, plot, precinct) %>%
+  summarize(richness=length(unique(code)))
+```
+
+```{r echo=FALSE, fig-3, fig.cap="Grazing treatment by quadrat (alpha) interaction with precinct for grazed years only."}
+ggplot(alpha, aes(interaction(grazetrt, precinct), richness)) + geom_boxplot()+
+    theme_classic() + ggtitle("Average Alpha Richness")+
+  xlab("")+ylab("Species Richness") +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+
+```
+
+```{r echo=FALSE, fig-4, fig.cap="Species count frequencies for grazing and precinct treatments; quadrat (alpha) level."}
+ggplot(alpha, (aes(x=richness))) +geom_histogram() + facet_grid(grazetrt~precinct)+
+    theme_classic() + ggtitle("Alpha Richness Frequency")+
+  xlab("Species Richness")+ylab("Number of Quadrats") +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+
+```
+\pagebreak 
+
+### Gamma diversity (three plots)
+```{r echo=FALSE}
+
+trends_plot <- vegtog%>%
+  group_by(year, grazetrt, precinct, plot) %>%
+  summarize(richness=length(unique(code))) %>%
+  group_by(year, grazetrt, precinct) %>%
+  summarize(meanrich=mean(richness), SE=calcSE(richness))
+
+gamma <- vegtog %>%
+  filter(year!=2007, year!=2008, year!=2013, year!=2014, year!=2015, year!=2016) %>%
+  group_by(year, grazetrt, plot, precinct) %>%
+  summarize(richness=length(unique(code)))
+
+```
+
+```{r echo=FALSE, fig-5, fig.cap="Gamma richness trends over time."}
+ggplot(trends_plot, aes(color=grazetrt))+ geom_line(aes(x=year, y=meanrich)) +
+  facet_wrap(~precinct, labeller=) +geom_errorbar(aes(x=year, ymin=meanrich-SE, ymax=meanrich+SE))+
+  theme_classic() + ggtitle("Plot-Level Richness (±SE)")+
+  xlab("Year")+ylab("Species Richness") +
+  labs(col="", values =(c("Grazed", "Ungrazed")))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+```
+
+```{r echo=FALSE, fig-6, fig.cap="Grazing treatment by plot (gamma) interaction with precinct for grazed years only."}
+ggplot(gamma, aes(interaction(grazetrt, precinct), richness)) + geom_boxplot() +
+      theme_classic() + ggtitle("Average Gamma Richness")+
+  xlab("")+ylab("Species Richness") +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+```
+
+```{r echo=FALSE, fig-7, fig.cap="Species count frequencies for grazing and precinct treatments; plot (gamma) level."}
+ggplot(gamma, (aes(x=richness))) +geom_histogram() + facet_grid(grazetrt~precinct)+
+      theme_classic() + ggtitle("Gamma Richness Frequency")+
+  xlab("Species Richness")+ylab("Number of Plots") +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+```
+\pagebreak 
+
+### Beta diversity (one plot)
+
+```{r echo=FALSE, fig-8, fig.cap="Beta diversity through NMDS averaged across years.", warning=FALSE, message=FALSE}
+### NMDS AVERAGED ACROSS YEARS ##
+
+#spread plotID and species into a new data frame for NMDS
+plotspec <- select(vegtog, year, quadrat, precinct, code, count)%>%
+  group_by(quadrat, precinct,  code, year) %>%
+  summarize(meancount=mean(count))  %>%
+  group_by(quadrat, precinct, code) %>%
+  summarize(meancount = mean(meancount))
+plotspec <-spread(plotspec, code, meancount, fill=0)%>%
+  as.data.frame()
+plotspec <- plotspec %>%
+  mutate(quadratNEW = paste(quadrat,precinct))
+rownames(plotspec) <-paste(plotspec$quadratNEW)
+plotspec <- plotspec %>%
+  select(-quadrat, -precinct, -quadratNEW)
+
+
+# run NMDS
+plotspecNMDS <- metaMDS(plotspec, scale = T, trymax=500, k=2)
+#base r plot
+#plot(plotspecNMDS)
+
+# create a key for joining
+plotkey <- vegtog %>%
+  select(quadrat, precinct, grazetrt) %>%
+  unique() %>%
+  mutate(quadratNEW = paste(quadrat,precinct)) %>%
+  mutate(interaction = paste(precinct ,grazetrt))
+
+# Extract and format site scores
+data.scores <- as.data.frame(scores(plotspecNMDS, display=c("sites")))
+data.scores$quadratNEW <- row.names(data.scores)
+data.scores <- as_tibble(data.scores)
+
+data.scores <- right_join(plotkey, data.scores, by="quadratNEW")
+
+# Extract and format species scores
+species.scores <- as.data.frame(scores(plotspecNMDS, display=c("species")))
+species.scores$species <- row.names(species.scores)
+species.scores <- as_tibble(species.scores)
+
+
+#ELLIPSES#
+data.scores <- data.scores %>%
+  select(-quadrat, -precinct, -grazetrt, -quadratNEW)
+
+#plotspecNMDS <- metaMDS(plotspec, scale = T)
+ggplot() +
+  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=.8, size=2) +  # add the species labels
+  geom_point(data=data.scores,aes(x=NMDS1,y=NMDS2,shape=interaction, color=interaction),size=2) + # add the point markers
+  #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
+  # scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
+  coord_equal() +
+  theme_classic()+
+  ggtitle("Interaction NMDS")+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))+
+  theme(legend.text=element_text(size=12))+
+  labs(col="", shape="")
+
+
+```
+
+
+\pagebreak
+
+### Percent native cover. (Only have this data for 2008 - can't use beacuse there was no grazing in 2007.)
+```{r echo=FALSE, fig-9, fig.cap="XXX", warning=FALSE, message=FALSE}
+
+### % NATIVE COVER ###
+# what is the percent of native cover at the quadrat level across treatment. Only have this data for 2008, useless. 
+
+pctnative <- vegtog %>%
+  filter(!is.na(cover))
+unique(pctnative$year)
+
+```
+\pagebreak 
+
+### Select Species
+For *Bromus*, *Schismus* and *Hordeum* four characterizations of demographics were plotted.  The first of these was simply comparing average counts per quadrat over all years to look for consistent alpha patterns.  Second, each of these counts were plotted out annually to look for trends at the alpha level.  Third, the number of quadrats with species present was plotted to look for a spread or contraction of the species over time.  Finally, an average gamma/plot level count was calculated as a trend over time. 
+
+
+### Red Brome. 
+```{r echo=FALSE, fig-10, fig.cap="Redbrome Demographics", warning=FALSE, message=FALSE}
+### RED BROME DEMOGRAPHICS ###
+
+#REDBROME COUNTS BY QUADRAT 
+redbrome <- subset(vegtog, vegtog$code == "bromad") 
+#plot average counts per quadrat
+ggplot(redbrome, aes(x=grazetrt, y=count)) + geom_boxplot() + facet_wrap(~precinct)+
+    theme_classic() + ggtitle("Plot Average Counts/Quad ")+
+  xlab("")+ylab("Alpha Count") +
+  #labs(col="", values =(c("Grazed", "Ungrazed")))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+#plot all counts over years
+ggplot(redbrome, aes(x=year, y=count)) + geom_jitter(aes(color=grazetrt)) + facet_wrap(~precinct)+
+      theme_classic() + ggtitle("Count in Quadrats/Time ")+
+  xlab("")+ylab("Number of Individuals") +
+  labs(col="", values =c("Grazed", "Ungrazed"))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+
+#NUMBER OF QUADRATS WITH REDBROME present each year by treatment
+redbrometrend <- subset(vegtog, vegtog$code == "bromad") %>%
+  group_by(year, grazetrt, precinct) %>%
+  summarize(quadcount=length(unique(quadrat))) 
+#plot number of quadrats species found in over the years
+ggplot(redbrometrend, aes(x=year, y=quadcount, color=grazetrt)) +geom_line() +facet_wrap(~precinct)+
+        theme_classic() + ggtitle("#Quads Containing Bromus/Time")+
+  xlab("Year")+ylab("# Quadrats") +
+  labs(col="", values =c("Grazed", "Ungrazed"))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+
+#AVERAGE TOTAL REDBROME counted in each plot +- SE
+redbrometot <-redbrome %>%
+  group_by(year, grazetrt, precinct, plot) %>%
+  summarize(totalcount=sum(count))%>%
+  group_by(year, grazetrt, precinct)%>%
+  summarize(mean=mean(totalcount), SE=calcSE(totalcount)) 
+#plot total count/plot for species over the years.  replication and error bars n=10 plots
+ggplot(redbrometot, aes(x=year, y=mean, color=grazetrt)) +geom_line() +facet_wrap(~precinct) +
+  geom_errorbar(aes(x=year, ymin=mean-SE, ymax=mean+SE))+
+        theme_classic() + ggtitle("Average Count in Plot/Time")+
+  xlab("Year")+ylab("Number Individuals") +
+  labs(col="", values =c("Grazed", "Ungrazed"))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+
+
+
+```
+\pagebreak 
+
+### Mediterranean Grass
+```{r echo=FALSE, fig-11, fig.cap="Schismus Demographics", warning=FALSE, message=FALSE}
+
+#SCHISMUS COUNTS BY QUADRAT 
+schismus <- subset(vegtog, vegtog$code == "schara") 
+#plot average counts per quadrat
+ggplot(schismus, aes(x=grazetrt, y=count)) + geom_boxplot() + facet_wrap(~precinct)+
+    theme_classic() + ggtitle("Plot Average Counts/Quad ")+
+  xlab("")+ylab("Alpha Count") +
+  #labs(col="", values =(c("Grazed", "Ungrazed")))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+#plot all counts over years
+ggplot(schismus, aes(x=year, y=count)) + geom_jitter(aes(color=grazetrt)) + facet_wrap(~precinct)+
+      theme_classic() + ggtitle("Count in Quadrats/Time ")+
+  xlab("")+ylab("Number of Individuals") +
+  labs(col="", values =c("Grazed", "Ungrazed"))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+
+#NUMBER OF QUADRATS WITH SCHISMUS present each year by treatment
+schismustrend <- subset(vegtog, vegtog$code == "schara") %>%
+  group_by(year, grazetrt, precinct) %>%
+  summarize(quadcount=length(unique(quadrat))) 
+#plot number of quadrats species found in over the years
+ggplot(schismustrend, aes(x=year, y=quadcount, color=grazetrt)) +geom_line() +facet_wrap(~precinct)+
+        theme_classic() + ggtitle("#Quads Containing Schismus/Time")+
+  xlab("Year")+ylab("# Quadrats") +
+  labs(col="", values =c("Grazed", "Ungrazed"))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+
+#AVERAGE TOTAL SCHISMUS counted in each plot +- SE
+schismustot <-schismus %>%
+  group_by(year, grazetrt, precinct, plot) %>%
+  summarize(totalcount=sum(count))%>%
+  group_by(year, grazetrt, precinct)%>%
+  summarize(mean=mean(totalcount), SE=calcSE(totalcount)) 
+#plot total count/plot for species over the years.  replication and error bars n=10 plots
+ggplot(schismustot, aes(x=year, y=mean, color=grazetrt)) +geom_line() +facet_wrap(~precinct) +
+  geom_errorbar(aes(x=year, ymin=mean-SE, ymax=mean+SE))+
+        theme_classic() + ggtitle("Average Count in Plot/Time")+
+  xlab("Year")+ylab("Number Individuals") +
+  labs(col="", values =c("Grazed", "Ungrazed"))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+```
+\pagebreak 
+
+### Hordeum
+```{r echo=FALSE, fig-12, fig.cap="Hordeum Demographics", warning=FALSE, message=FALSE}
+
+#HORMUR COUNTS BY QUADRAT 
+hordeum <- subset(vegtog, vegtog$code == "hormur") 
+#plot average counts per quadrat
+ggplot(hordeum, aes(x=grazetrt, y=count)) + geom_boxplot() + facet_wrap(~precinct)+
+    theme_classic() + ggtitle("Plot Average Counts/Quad ")+
+  xlab("")+ylab("Alpha Count") +
+  #labs(col="", values =(c("Grazed", "Ungrazed")))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+#plot all counts over years
+ggplot(hordeum, aes(x=year, y=count)) + geom_jitter(aes(color=grazetrt)) + facet_wrap(~precinct)+
+      theme_classic() + ggtitle("Count in Quadrats/Time ")+
+  xlab("")+ylab("Number of Individuals") +
+  labs(col="", values =c("Grazed", "Ungrazed"))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+
+#NUMBER OF QUADRATS WITH HORMUR present each year by treatment
+hordeumtrend <- subset(vegtog, vegtog$code == "hormur") %>%
+  group_by(year, grazetrt, precinct) %>%
+  summarize(quadcount=length(unique(quadrat))) 
+#plot number of quadrats species found in over the years
+ggplot(hordeumtrend, aes(x=year, y=quadcount, color=grazetrt)) +geom_line() +facet_wrap(~precinct)+
+        theme_classic() + ggtitle("#Quads Containing Hordeum/Time")+
+  xlab("Year")+ylab("# Quadrats") +
+  labs(col="", values =c("Grazed", "Ungrazed"))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+
+#AVERAGE TOTAL HORMUR counted in each plot +- SE
+hordeumtot <-hordeum %>%
+  group_by(year, grazetrt, precinct, plot) %>%
+  summarize(totalcount=sum(count))%>%
+  group_by(year, grazetrt, precinct)%>%
+  summarize(mean=mean(totalcount), SE=calcSE(totalcount)) 
+#plot total count/plot for species over the years.  replication and error bars n=10 plots
+ggplot(hordeumtot, aes(x=year, y=mean, color=grazetrt)) +geom_line() +facet_wrap(~precinct) +
+  geom_errorbar(aes(x=year, ymin=mean-SE, ymax=mean+SE))+
+        theme_classic() + ggtitle("Average Count in Plot/Time")+
+  xlab("Year")+ylab("Number Individuals") +
+  labs(col="", values =c("Grazed", "Ungrazed"))+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14), title=element_text(size=18))
+
+
+```
+\pagebreak 
+
+### Biomass and cattle (TBD)
+
+\pagebreak 
+
+## IV. Discussion
+
+Overall, results show that there is little suggestion that grazing, as currently being implemented at Carrizo Plain, is having a significant impact on overall community dynamics. This conclusion is generally supported by alpha richness figures (Fig. 2-5), gamma richness figures (Fig. 5-7), beta richness NMDS (Fig. 8), and each of the three key species visualizations: *Bromus* (Figs 9-12), *Schismus* (Figs 13-16), and *Hordeum* (Figs 17-20).  While there are some marginal impacts discussed below, other factors seem to be generally much more important.
+
+Three visualizations were used to address the hypothesis that grazing would increase alpha diversity.  It was expected that through reduction of competitive dominants locally, more species would be found in grazed plots.  This was first addressed by simply looking at average alpha richness over time (Fig. 2).  Both on and off mound there was no discernible pattern of difference between mean richness.  When averaged across years (Fig. 3) there was similarly little to no difference in the mean richness, and having seen the variation underlying Figure 1, the usefulness of this figure is dubious.  Finally, figure 4 visualized individual counts of species in quadrats, showing four relatively normal distributions around the same mean.  It can be inferred from these figures that grazing is not affecting alpha level species richness.  
+
+It was expected that any dynamics caused by cattle would be internal to plots and that gamma diversity would not change.  Through parallel visualizations to those for alpha diversity (Figs. 5-7) this prediction was upheld. The only interesting patterns was that GKR mounds (precincts) had slightly elevated species richness at the plot level.
+
+Between quadrat beta diversity was visualized through NMDS to test the hypothesis that grazing would lead to homogenization of sites (Fig. 8).  There seems to be little evidence to support this hypothesis.  There appears to be some clustering and restriction of the space which grazed sites occupy, but there are enough outliers to cast doubt on this interpretation.
+
+If grazing does not have a noticeable effect on the numbers of species, perhaps it might on the identity of species.  Due to a lack of percent cover data, native cover was not visualized, but treatment effects on three invasive species were.  Each species demographic responses were visualized in three ways: first, through average counts at the alpha level averaged across years (Figs. 9, 13, 17); second, through counts at the alpha year by year (Figs. 10, 14, 18); third through total number of quadrats containing the species over time (Figs. 11, 15, 19), and finally by the total count at the gamma level year-by-year (Figs. 12, 16, 20).  
+
+The average across years of counts in quadrats actually did suggest higher numbers of both *Schismus* and *Hordeum*, particularly on GKR mounds, and it would be worth testing if this is significant.  This pattern can be seen most easily in the visualizations of quadrat counts over time (Figures 13 and 17).  
+
+Quadrats with each species present were visualized across years to attempt to track spread of each species (Figs 11, 15, 19).  Interestingly, clearly in the cases of *Bromus* and *Schismus* and less so for *Hordeum*, location on or off a mound reversed the effect that grazing had.  On GKR mounds, species were found in more quadrats in grazed plots than the ungrazed, and off GKR mounds, species were found in fewer quadrats in the grazed plots than the ungrazed. This pattern potentially supports the hypothesis that grazing is reducing competitive dominants, as these species are already at elevated presence on GKR mounds.  Generally this pattern is found again at plot level counts in the final set of figures, except for in the case of *Hordeum*, where there is a significant increase in on-precinct individuals in grazed plots.
+
+Generally, grazing seems to not impose much control on this community.  While there is some suggestion of clustering in NMDS and dominance reduction for key species at the alpha level, it is unlikely to be significant.  Future steps include controlling for precipitation over the years, rerunning NMDS with quadrats by individual year, and calculating biomass and counts for native and exotic species generally.  
+
+\pagebreak
+
+## Literature cited
+Amarasekare, Priyanga. 2003. “Competitive Coexistence in Spatially Structured Environments: A Synthesis.” Ecology     
+  Letters. https://doi.org/10.1046/j.1461-0248.2003.00530.x.
+
+Bangert, R. K., and C N Slobodchikoff. 2006. “Conservation of Prairie Dog Ecosystem Engineering May Support Arthropod 
+  Beta and Gamma Diversity.” Journal of Arid Environments 67 (1):100–115. 
+  https://doi.org/10.1016/j.jaridenv.2006.01.015.
+
+Best, Troy L. 1988. “Dipodomys Spectabilis.” Mammalian Species, no. 311:1–10.
+
+Brooks, Matt. 2003a. "Plant Assessment Form, Schismus barbatus". CAL-IPC. 
+  http://www.cal-ipc.org/plants/paf/schismus-barbatus-plant-assessment-form/.
+
+Brooks, Matt. 2003b. "Plant Assessment Form, Bromus madritensis ss. rubens". CAL-IPC. 
+  http://www.cal-ipc.org/plants/profile/bromus-madritensis-ssp-rubens-profile/.
+
+Canals, Rosa M., Donald J. Herman, and Mary K. Firestone. 2003. “HOW DISTURBANCE BY FOSSORIAL
+  MAMMALS ALTERS N CYCLING IN A CALIFORNIA ANNUAL GRASSLAND.” Ecology 84 (4):875–
+  81. https://doi.org/10.1890/0012-9658(2003)084[0875:HDBFMA]2.0.CO;2.
+
+Chesson, Peter. 2000. “Mechanisms of Maintenance of Species Diversity.” Annual Review of Ecology and
+  Systematics 31:343–66. https://doi.org/10.1146/annurev.ecolsys.31.1.343.
+
+Davidson, Ana D, and David C Lightfoot. 2006. “Keystone Rodent Interactions: Prairie Dogs and Kangaroo Rats
+  Structure the Biotic Composition of a Desertified Grassland.” Ecography 29 (5):755–65.
+  https://doi.org/10.1111/j.2006.0906-7590.04699.x.
+
+Derner, Justin D, William K Lauenroth, Paul Stapp, and David J Augustine. 2009. “Livestock as Ecosystem
+  Engineers for Grassland Bird Habitat in the Western Great Plains of North America” 62 (2):111– 18.   
+  https://doi.org/10.2111/08-008.1.
+
+Fuhlendorf, Samuel D., and David M. Engle. 2001. “Restoring Heterogeneity on Rangelands: Ecosystem Management Based on  
+  Evolutionary Grazing Patterns.” BioScience 51 (8):625. https://doi.org/10.1641/0006-   
+  3568(2001)051[0625:RHOREM]2.0.CO;2.
+
+Guo, Qinfeng. 1996. “Effects of Bannertail Kangaroo Rat Mounds on Small-Scale Plant Community Structure.” Oecologia 106 
+  (2):247–56. https://doi.org/10.1007/BF00328605.
+
+Gurney, Christopher M., Laura R. Prugh, and Justin S. Brashares. 2015. “Restoration of Native Plants Is Reduced by   
+  Rodent-Caused Soil Disturbance and Seed Removal.” Rangeland Ecology and Management 68 (4):359–66. 
+  https://doi.org/10.1016/j.rama.2015.05.001.
+
+Harrison, Susan. 1997. “How Natural Habitat Patchiness Affects the Distribution of Diversity in Californian Serpentine  
+  Chaparral.” Ecology 78 (6):1898–1906.
+
+Hastings, Alan, James E Byers, Jeffrey A Crooks, K Cuddington, Clive G Jones, J G Lambrinos, T S Talley, and W G Wilson.
+  2007. “Ecosystem Engineering in Space and Time.” Ecol Lett 10 (2):153–64. 
+  https://doi.org/10.1111/j.1461-0248.2006.00997.x.
+
+Hobbs, R. J., and H. A. Mooney. 1985. “Community and Population Dynamics of Serpentine Grassland Annuals in Relation to 
+  Gopher Disturbance.” Oecologia 67 (3):342–51. https://doi.org/10.1007/BF00384939.
+  ———. 1991. “Effects of Rainfall Variability and Gopher Disturbance on Serpentine Annual Grassland Dynamics.” Ecology 
+  72   (1):59–68. https://doi.org/10.2307/1938902.
+
+Hobbs, Richard J, and Laura F Huenneke. 1992. “Disturbance , Diversity , and Invasion : Implications for Conservation” 6
+  (3):324–37.
+
+Hortal, Joaquín, Kostas A. Triantis, Shai Meiri, Elisa Thébault, and Spyros Sfenthourakis. 2009. “Island Species 
+  Richness   Increases with Habitat Diversity.” The American Naturalist 174 (6):E205–17. https://doi.org/10.1086/645085.
+
+Jones, Clive, Lawton, John, Shachak, Moshe. 1997. “Positive and Negative Effects of Organisms as Physical Ecosystem   
+  Engineers.” Ecology 78 (7):1946–57.
+
+Jones, Clive G, Jorge L. Gutiérrez, James E Byers, Jeffrey A Crooks, John G Lambrinos, and Theresa S Talley. 2010. “A 
+  Framework for Understanding Physical Ecosystem Engineering by Organisms.” Oikos 119 (12):1862–69. 
+  https://doi.org/10.1111/j.1600-0706.2010.18782.x.
+
+Motzkin, Glenn, Paul Wilson, David R. Foster, and Arthur Allen. 1999. “Vegetation Patterns in Heterogeneous Landscapes:   
+  The Importance of History and Environment.” Journal of Vegetation Science 10 (6):903–20.   
+  https://doi.org/10.2307/3237315.
+
+Oliver, Tom, David B Roy, Jane K. Hill, Tom Brereton, and Chris D. Thomas. 2010. “Heterogeneous Landscapes Promote 
+  Population Stability.” Ecology Letters 13 (4):473–84. https://doi.org/10.1111/j.1461- 0248.2010.01441.x.
+
+Pickett, S T A, and P S White. 1985. The Ecology of Natural Disturbance and Patch Dynamics. The Ecology of Natural 
+  Disturbance and Patch DynamicsAcademic Press. Vol. 1. https://doi.org/10.2307/2403105.
+
+Prugh, Laura R., and Justin S. Brashares. 2012. “Partitioning the Effects of an Ecosystem Engineer: Kangaroo Rats   
+  Control   Community Structure via Multiple Pathways.” Journal of Animal Ecology 81 (3):667–78.   
+  https://doi.org/10.1111/j.1365-2656.2011.01930.x.
+
+Stein, Anke, Katharina Gerstner, and Holger Kreft. 2014. “Environmental Heterogeneity as a Universal Driver of Species  
+  Richness across Taxa, Biomes and Spatial Scales.” Ecology Letters. https://doi.org/10.1111/ele.12277.
+
+Stevens, M. Henry H., and Walter P. Carson. 2002. “Resource Quantity, Not Resource Heterogeneity, Maintains Plant 
+  Diversity.” Ecology Letters 5 (3):420–26. https://doi.org/10.1046/j.1461-0248.2002.00333.x.
+
+Tuomisto, Hanna. 2010. “A Diversity of Beta Diversities: Straightening up a Concept Gone Awry. Part 2. Quantifying Beta 
+  Diversity and Related Phenomena.” Ecography 33 (1):23–45. https://doi.org/10.1111/j.1600- 0587.2009.06148.x.
+
+White, P S, and S T A Pickett. 1985. “Natural Disturbance and Patch Dynamics: An Introduction.” The Ecology of Natural 
+  Disturbance and Patch Dynamics, 3–13. https://doi.org/10.2307/2403105.
+
+Wills, B. D., and D. A. Landis. 2017. “The Role of Ants in North Temperate Grasslands: A Review.” Oecologia, 2017.   
+  https://doi.org/10.1007/s00442-017-4007-0.
+
+Wright, Justin P, Clive G Jones, and Alexander S Flecker. 2002. “An Ecosystem Engineer, the Beaver, Increases Species   
+  Richness at the Landscape Scale.” Oecologia 132 (1):96–101. https://doi.org/10.1007/s00442-002- 0929-1.
