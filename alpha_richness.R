@@ -70,7 +70,7 @@ alpha.shannon.n <- alpha.shannon.n %>%
 
 ##plot level total and native diversity
 gamma.shannon <- vegtog %>%
-  filter(year!=2007, year!=2008, year!=2013, year!=2014, year!=2015, year!=2016) %>%
+#  filter(year!=2007, year!=2008, year!=2013, year!=2014, year!=2015, year!=2016) %>%
   mutate(native=substr(form, 1, 1)) %>%
   group_by(year, site, plot, precinct, grazetrt, native, code) %>%
   summarize(count=sum(count))%>%

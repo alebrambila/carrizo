@@ -35,6 +35,28 @@ natcover <- vegtog %>%
 levels(natcover$native) <- c("Invasive", "Native")
 levels(natcover$growthhabit) <- c("Forb", "Grass")
 
+#which, native grasses
+natgrasses <- vegtog %>%
+  mutate(percover=count/81*100) %>%
+  mutate(native=substr(form, 1, 1)) %>%
+  mutate(native=as.factor(native)) %>%
+  filter(!is.na(native), !is.na(growthhabit)) %>%
+  mutate(growthhabit=as.factor(growthhabit))%>%
+  filter(native=="n", growthhabit=="grass") %>%
+  #for years that were grazed (grazed/ungrazed), for years that were not grazed (gnograze/nograze), respectively.
+  mutate(grazetrt=ifelse(year%in% c(2007,2012,2013,2014,2015) & grazetrt=="grazed", "gnograze", ifelse(year%in% c(2007,2012,2013,2014,2015) & grazetrt=="ungrazed", "nograze", grazetrt)))%>%
+  group_by(year, site, quadrat, plot, precinct, grazetrt, code) %>%
+  summarize(percover=sum(percover)) %>%
+  group_by(code, grazetrt, precinct) %>%
+  filter(year%in% c(2008, 2009, 2010, 2011, 2016, 2017)) %>%
+  summarize(meancover=mean(percover), secover=calcSE(percover))
+ggplot(natgrasses, aes(code, meancover)) + 
+  geom_bar(aes(fill=grazetrt), stat="identity", position="dodge") +
+  facet_wrap(~precinct) +
+  geom_errorbar(aes(ymin=(meancover-secover), ymax=meancover+secover, group=grazetrt), position="dodge", color = "black", lwd = .1) +
+  scale_fill_manual("Result", values = c("brown","darkblue"))+
+  labs(x="",y="Percent Cover") + 
+  theme(legend.position = "none")
 
 #average native and invasive total cover across all quadrats within a year
 natcover.annual<-natcover %>%

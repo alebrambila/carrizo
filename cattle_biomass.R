@@ -20,6 +20,7 @@ theme_set(theme_bw(base_size = 16) + theme(text = element_text(size = 20)) +
 #2, 3
 grazing_biomass<-vegtog %>%
   mutate(native=substr(form, 1, 1)) %>%
+  mutate(April=April*142.7487, October=October*142.7487) %>%
   dplyr::select(-flowermonth, -form, -fullform, -lifecycle, -growthhabit, -count, -preciptrt) %>%
   mutate(precinct=as.factor(precinct), year=as.factor(year)) %>%
   filter(!is.na(April), !is.na(October)) %>%
@@ -37,7 +38,7 @@ ggplot(grazing_biomass)  +
   facet_grid(~precinct) +
   scale_fill_manual("Treatment", values = c("brown","darkblue"), 
   labels = c("Grazed","Ungrazed")) +
-  labs(x="Year",y="Biomass Consumed") + 
+  labs(x="Year",y="Biomass Consumed (Lb/Acre)") + 
   geom_errorbar(aes(x=year, ymin=(meanred-sered), 
                     ymax=meanred+sered, 
                     group=grazetrt), 
@@ -50,7 +51,7 @@ ggplot(grazing_biomass)  +
   facet_grid(~precinct) +
   scale_fill_manual("Treatment", values = c("brown","darkblue"), 
                     labels = c("Grazed","Ungrazed")) +
-  labs(x="Year",y="Residual Biomass (lb/quadrat)") + 
+  labs(x="Year",y="Residual Biomass (Lb/Acre)") + 
   geom_errorbar(aes(x=year, ymin=(meanoct-seoct), 
                     ymax=meanoct+seoct, 
                     group=grazetrt), 
@@ -60,6 +61,7 @@ ggplot(grazing_biomass)  +
 #aggregated residual biomass
 agg.biomass <- vegtog %>%
   mutate(native=substr(form, 1, 1)) %>%
+  mutate(April=April*142.7487, October=October*142.7487) %>%
   dplyr::select(-flowermonth, -form, -fullform, -lifecycle, -growthhabit, -count, -preciptrt) %>%
   mutate(precinct=as.factor(precinct), year=as.factor(year), grazetrt=as.factor(grazetrt)) %>%
   filter(!is.na(April), !is.na(October)) %>%
@@ -76,7 +78,7 @@ ggplot(agg.biomass, aes(grazetrt, meanoct)) +
   facet_grid(~precinct) +
   geom_errorbar(aes(ymin=(meanoct-seoct), ymax=meanoct+seoct, group=grazetrt), position="dodge", color = "black", lwd = .1) +
   scale_fill_manual("Result", values = c("brown","darkblue"), labels=c("Grazed", "Ungrazed"))+
-  labs(x="",y="Residual Biomass (lb/quadrat)") + 
+  labs(x="",y="Residual Biomass (Lb/Acre)") + 
   theme(legend.position = "none")
 
 #4b. - LRR residual biomass
