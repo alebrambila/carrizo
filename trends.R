@@ -6,13 +6,14 @@
 ## Demonstrate that interannual variability is a major structuring force in this system.
 ## We will need to deal with this to go forwards
 ## In these visualizations ungrazed drought years are included to show 
-## consistency of pattern across trt. 
+## consistency of pattern across treatments. 
 
 ## Part 1: Richness trends at three levels
 ## Part 2: Cover trend
 ## Part 3: Biomass trend
 ## Part 4: Functional group trends
 ## Part 5: Species invasion trends (proportion and accumulation)
+
 
 
 ################################################
