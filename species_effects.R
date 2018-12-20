@@ -3,11 +3,42 @@
 ################################
 
 
-### % NATIVE COVER ###
-# what is the percent of native cover at the quadrat level across treatment. Only have this data for 2008, useless. 
-pctnative <- vegtog %>%
-  filter(!is.na(cover))
-unique(pctnative$year)
+### HORDEUM DEMOGRAPHICS ###
+
+#HORMUR COUNTS BY QUADRAT, includes a LOT of zeroes and ones...
+hordeum <- subset(vegtog, vegtog$code == "hormur")%>%
+  select(year, quadrat, site, grazetrt, precinct, code, count)
+h2<-vegtog %>%
+  group_by(year, quadrat, site, grazetrt, precinct) %>%
+  summarize()
+
+hordeum<-left_join(h2, hordeum)%>%
+  mutate(hormur=count)%>%
+  select(-code, -count)
+hordeum[is.na(hordeum)] <- 0 
+
+#plot average counts per quadrat, lots of zeroes, then lots of ones...
+ggplot(hordeum, aes(x=interaction(precinct, grazetrt), y=hormur)) + geom_boxplot(aes())
+#plot all counts over years
+ggplot(hordeum, aes(x=year, y=hormur)) + geom_jitter(aes(color=interaction(precinct, grazetrt)))
+
+
+#AVERAGE TOTAL HORMUR counted in each plot +- SE
+hordeumtot <-hordeum %>%
+  group_by(year, grazetrt, precinct, site) %>%
+  summarize(totalcount=sum(hormur))%>%
+  group_by(year, grazetrt, precinct)%>%
+  summarize(mean=mean(totalcount), SE=calcSE(totalcount)) 
+#plot total count/plot for species over the years.  replication and error bars n=10 plots
+ggplot(hordeumtot, aes(x=year, y=mean, color=grazetrt)) +geom_line() +facet_wrap(~precinct) +
+  geom_errorbar(aes(x=year, ymin=mean-SE, ymax=mean+SE))
+
+
+#count proportion of quadrats that have hordeum present and not... does treatment affect the total number?
+# when horedum is present, what are the characteristics - or when it is present and >1
+#for those that are over 10%, what are their treatment?
+
+
 
 ### RED BROME DEMOGRAPHICS ###
 
@@ -17,13 +48,6 @@ redbrome <- subset(vegtog, vegtog$code == "bromad")
 ggplot(redbrome, aes(x=grazetrt, y=count)) + geom_boxplot() + facet_wrap(~precinct)
 #plot all counts over years
 ggplot(redbrome, aes(x=year, y=count)) + geom_jitter(aes(color=grazetrt)) + facet_wrap(~precinct)
-
-#NUMBER OF QUADRATS WITH REDBROME present each year by treatment
-redbrometrend <- subset(vegtog, vegtog$code == "bromad") %>%
-  group_by(year, grazetrt, precinct) %>%
-  summarize(quadcount=length(unique(quadrat))) 
-#plot number of quadrats species found in over the years
-ggplot(redbrometrend, aes(x=year, y=quadcount, color=grazetrt)) +geom_line() +facet_wrap(~precinct)
 
 #AVERAGE TOTAL REDBROME counted in each plot +- SE
 redbrometot <-redbrome %>%
@@ -36,8 +60,6 @@ ggplot(redbrometot, aes(x=year, y=mean, color=grazetrt)) +geom_line() +facet_wra
   geom_errorbar(aes(x=year, ymin=mean-SE, ymax=mean+SE))
 
 
-
-
 ### SCHISMUS DEMOGRAPHICS ###
 
 #SCHISMUS COUNTS BY QUADRAT 
@@ -47,12 +69,6 @@ ggplot(schismus, aes(x=grazetrt, y=count)) + geom_boxplot() + facet_wrap(~precin
 #plot all counts over years
 ggplot(schismus, aes(x=year, y=count)) + geom_jitter(aes(color=grazetrt)) + facet_wrap(~precinct)
 
-#NUMBER OF QUADRATS WITH SCHISMUS present each year by treatment
-schismustrend <- subset(vegtog, vegtog$code == "schara") %>%
-  group_by(year, grazetrt, precinct) %>%
-  summarize(quadcount=length(unique(quadrat))) 
-#plot number of quadrats species found in over the years
-ggplot(schismustrend, aes(x=year, y=quadcount, color=grazetrt)) +geom_line() +facet_wrap(~precinct)
 
 #AVERAGE TOTAL SCHISMUS counted in each plot +- SE
 schismustot <-schismus %>%
@@ -62,34 +78,6 @@ schismustot <-schismus %>%
   summarize(mean=mean(totalcount), SE=calcSE(totalcount)) 
 #plot total count/plot for species over the years.  replication and error bars n=10 plots
 ggplot(schismustot, aes(x=year, y=mean, color=grazetrt)) +geom_line() +facet_wrap(~precinct) +
-  geom_errorbar(aes(x=year, ymin=mean-SE, ymax=mean+SE))
-
-
-
-### HORDEUM DEMOGRAPHICS ###
-
-#HORMUR COUNTS BY QUADRAT 
-hordeum <- subset(vegtog, vegtog$code == "hormur") 
-#plot average counts per quadrat
-ggplot(hordeum, aes(x=grazetrt, y=count)) + geom_boxplot() + facet_wrap(~precinct)
-#plot all counts over years
-ggplot(hordeum, aes(x=year, y=count)) + geom_jitter(aes(color=grazetrt)) + facet_wrap(~precinct)
-
-#NUMBER OF QUADRATS WITH HORMUR present each year by treatment
-hordeumtrend <- subset(vegtog, vegtog$code == "hormur") %>%
-  group_by(year, grazetrt, precinct) %>%
-  summarize(quadcount=length(unique(quadrat))) 
-#plot number of quadrats species found in over the years
-ggplot(hordeumtrend, aes(x=year, y=quadcount, color=grazetrt)) +geom_line() +facet_wrap(~precinct)
-
-#AVERAGE TOTAL HORMUR counted in each plot +- SE
-hordeumtot <-hordeum %>%
-  group_by(year, grazetrt, precinct, plot) %>%
-  summarize(totalcount=sum(count))%>%
-  group_by(year, grazetrt, precinct)%>%
-  summarize(mean=mean(totalcount), SE=calcSE(totalcount)) 
-#plot total count/plot for species over the years.  replication and error bars n=10 plots
-ggplot(hordeumtot, aes(x=year, y=mean, color=grazetrt)) +geom_line() +facet_wrap(~precinct) +
   geom_errorbar(aes(x=year, ymin=mean-SE, ymax=mean+SE))
 
 
