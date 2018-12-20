@@ -12,7 +12,7 @@
 
 library(tidyverse)
 library(vegan)
-library(acrigolae)
+library(agricolae)
 library(ggpubr)
 
 ### LOAD THE DATA ###
