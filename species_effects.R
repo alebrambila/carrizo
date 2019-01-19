@@ -12,6 +12,9 @@
 ## Part 5: Species Presence-Absence
 
 
+vegtog<-vegtog_purged #Run this line to visualize with purged vegtog instead of vegtog. (lose 1/2 data)
+
+
 ##############################################################
 ## Part 1: Calculate total hits/quadrat total and by species #
 ##############################################################
