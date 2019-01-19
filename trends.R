@@ -15,11 +15,14 @@
 ## Part 5: Species invasion trends (proportion and accumulation)
 
 
+vegtog<-vegtog_purged #Run this line to visualize with purged vegtog instead of vegtog. (lose 1/2 data)
+
 
 ################################################
 # Part 1: RICHNESS TRENDS AT THREE LEVELS:     #
 # Full site, 20 paired plots, and 173 quadrats #
 ################################################
+
 
 # Total 
 annUniqueSp <- vegtog%>%  
