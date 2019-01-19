@@ -134,6 +134,13 @@ current<-count(vegtog, precinctcurrent) %>%
   filter((row_number() %in% c(3, 4, 5, 14, 15, 16, 17, 18, 19, 20, 27, 33, 34, 35, 36, 41)))
 current<-current$precinctcurrent
 
+to_purge <- vegtog_vegonly %>%
+  mutate(precinctcurrent=tolower(precinctcurrent)) %>%
+  filter((precinctcurrent %in% current)) %>%
+  select(quadrat)%>%
+  group_by(quadrat)%>%
+  summarize() #total of 70 more quadrats to purge
+
 vegtog_moundshift <- vegtog_vegonly %>%
   mutate(precinctcurrent=tolower(precinctcurrent)) %>%
   filter(!(precinctcurrent %in% current))
@@ -142,6 +149,18 @@ vegtog_moundshift <- vegtog_vegonly %>%
 vegtog_nopreciptrt <- vegtog_moundshift %>%
   filter(preciptrt!="irrigation", preciptrt!="shelter")
 vegtog<-vegtog_nopreciptrt
+
+
+## what happens if we retroactively filter all years that wound up having irrigation treatments or having their mounds shift?
+#all quadrats in treatment plots and some specific quads from mounds
+ 
+precip<-precip%>%
+  filter(preciptrt=="shelter"|preciptrt=="irrigation")
+vegtog_purged<-vegtog%>%
+  filter(!site %in% precip$site) %>% #take out any plots ever with irrigation in it
+  filter(!quadrat %in% to_purge$quadrat) #take out any quadrats that ever moved
+
+
 
 # Clean up environment.
 rm(cowpies, funckey, plantkey, sitekey, vegdat, biomass, current)
