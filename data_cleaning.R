@@ -17,69 +17,80 @@ library(ggpubr)
 
 ### LOAD THE DATA ###
 vegdat <- read.csv("veg plot data all.csv") # Collected vegetation data from pin drops: 81 drops/quadrat
+names(vegdat) = c("date", "quadrat", "observer", "site", "block", "sitetype", 
+                  "newquadrat", "code", "precinct", "count", "precinctcurrent",
+                  "year", "cover", "comments", "t1", "t2", "t3", "t4", "t5", "t6")
+vegdat<-select(vegdat, -starts_with("t"))%>%
+  filter(sitetype=="CR"|sitetype=="EP")
+
 sitekey <- read_csv("site type key.csv")    # treatment for each site type in vegdat
-plantkey <- read_csv("plant list.csv")      # species codes interpreted
+names(sitekey) = c("sitetype", "grazetrt", "pasturetrt", "rodenttrt", "exclosure", "altsitetype")
+
+precip <- read_csv("veg plot treatment key.csv")%>%
+  select(c(1,2, 5))
+names(precip) =c("site", "sitetype", "preciptrt")  
+precip<-mutate(precip, preciptrt=tolower(preciptrt))%>%
+  filter(sitetype=="CR"|sitetype=="EP")%>%
+  select(-sitetype)
+
+vegprecip<-read_csv("vegplot_withprecip.csv")%>%
+  select(c(4, 6, 9, 16))
+names(vegprecip)=c("site", "sitetype", "preciptrt", "year")
+vegprecip<-vegprecip%>%
+  filter(sitetype=="CR"|sitetype=="EP")%>%
+  group_by(site, sitetype, year, preciptrt) %>%
+  summarize() %>%
+  mutate(preciptrt=tolower(preciptrt))%>%
+  mutate(preciptrt=ifelse(preciptrt=="irrigation", "irrigation", ifelse(preciptrt=="shelter", "shelter", "none")))
+vegprecip$preciptrt[is.na(vegprecip$preciptrt)] <- "none"
+
+plantkey <- read_csv("plant list.csv")#%>%      # species codes interpreted
 funckey <- read_csv("plant forms.csv")      # associated plant functional characteristics
 biomass <- read_csv("veg plot biomass all years stacked.csv") # biomass per quadrat
 cowpies <- read_csv("cowpie counts all years.csv")            # cowpies per plot
 
 
-### JOIN VEGDAT AND SITE KEY TO CREATE VEGTOG ###
+### JOIN VEGDAT SITEKEY and PRECIP TO CREATE VEGTOG ###
+sitekey<-(left_join(vegprecip, sitekey))
+sitekey<-sitekey%>%
+  filter(sitetype=="CR"|sitetype=="EP")%>%
+  select(year, sitetype, site, preciptrt, grazetrt)
 
-names(vegdat) = c("date", "quadrat", "observer", "site", "plot", "sitetype", "precipblock", 
-                  "newquadrat", "preciptrt", "code", "precinct", "comments",
-                  "count", "originalorder", "precinctcurrent", "year", "ID", "cover")
-names(sitekey) = c("sitetype", "grazetrt", "pasturetrt", "rodenttrt", "exclosure", "altsitetype")
-
-vegtog <- left_join(vegdat, sitekey) %>%
-  select(-date, -observer, -comments, -originalorder, ID, -altsitetype) %>%
-  filter(code != "bare", code != "litter", code != "fresh dirt", code != "BARE", code != "HOLE", 
-         code != "bphole", code != "hole", code != "GOPHER", code != "MOSS", code != "ANT", 
-         code != "LITTER", code != "FRESH DIRT", code != "cowpie", code != "") %>%
+vegtog <- left_join(vegdat, sitekey)%>%
+  select(-date, -observer, -comments) %>%
   mutate(code = tolower(code)) %>%
-  mutate(precipblock = tolower(precipblock)) %>%
-  filter(pasturetrt != "swain")%>%                               # remove the ungrazed "swain" pasture
-  filter (count !=0, !is.na(count), exclosure != "CW rat excl") %>% # remove GKR exclosure plots and 0/NA 
+  mutate(code=ifelse(code %in% c("bare", "litter", "fresh dirt", "bphole", 
+                                 "hole","GOPHER", "MOSS", "ANT", "cowpie", ""), 
+                     "nohit", code))%>%
+  filter (count !=0, !is.na(count)) %>% # remove GKR exclosure plots and 0/NA 
   mutate(precinct=as.character(precinct)) %>%
   mutate(precinct=ifelse(precinct=="P ","P", precinct)) %>%
   mutate(precinct=as.factor(precinct)) %>%
   mutate(year=as.integer(year))
 
-
 ### JOIN VEGTOG AND PLANTKEY ###
 #Standardize column names
-names(plantkey) = c("plantID", "family", "commonfamily", "shortcode", "code", "binomial", 
-                    "genus", "species", "variety", "synonym", "common", "sink","salt",
-                    "grass","desert","juniper","oak","seep","oldform","soda","central",
-                    "western", "mountain","elkhorn","teblor","flowermonth","flowercolor",
-                    "native","gkrprefer","refcode","comments", "form")
+plantkey<-left_join(plantkey, funckey)%>%
+  select(c(1, 4, 5, 27, 33, 34))
 
-plantkey <- dplyr::select(plantkey, -shortcode, -sink, -salt, -grass, -desert, -juniper, -oak, 
-                          -seep, -soda, -central, -western, -mountain, -elkhorn, -teblor, binomial, 
-                          -commonfamily, -oldform, -common, -genus, -species, -flowercolor, -comments, 
-                          -variety, -synonym, -family)
+names(plantkey) = c("family", "code", "binomial", "native", "lifecycle", "growthhabit")
 
-vegtog <- left_join(vegtog, plantkey, by="code")
-
-
-### JOIN VEGTOG AND FUNCKEY ###
-names(funckey) = c("form", "fullform", "lifecycle", "growthhabit")
-vegtog <- left_join(vegtog, funckey) %>%
-  select(-native, -gkrprefer, -refcode)
+vegtog <- left_join(vegtog, plantkey)
 
 ### JOIN VEGTOG AND BIOMASS ###
 
 #clean up and rename biomass columns
 biomass <- biomass %>%
   select("year", "Site type", "Block", "New Plot ID", "net weight", "season")
-names(biomass) = c("year", "sitetype", "plot", "quadrat", "netwt", "wtmonth")
+names(biomass) = c("year", "sitetype", "block", "quadrat", "netwt", "wtmonth")
 biomass <- biomass %>%
+  mutate(quadrat=as.factor(quadrat))%>%
   mutate(wtmonth = tolower(wtmonth)) %>%
-  filter(sitetype=="CR"|sitetype=="EP", !is.na(year), !is.na(plot), !is.na(netwt), !is.na(quadrat), !is.na(wtmonth))%>%
+  filter(sitetype=="CR"|sitetype=="EP", !is.na(year), !is.na(block), !is.na(netwt), !is.na(quadrat), !is.na(wtmonth))%>%
   mutate(wtmonth=ifelse(wtmonth=="spring", "april", wtmonth))  %>%
   filter(wtmonth!="june") %>% ## We lose All the June measurements because their quad #s are 1-8 not "NO215" etc.
-  spread(wtmonth, netwt)
-
+  spread(wtmonth, netwt)%>%
+  select("year", "quadrat", "april", "october")
 
 #join april and october biomass columns to vegtog
 vegtog <- left_join(vegtog, biomass)
@@ -107,36 +118,38 @@ vegtog <- left_join(vegtog, cowpies)
 
 #remove columns
 vegtog<- vegtog %>%
-  select(-sitetype, -precipblock, -newquadrat, -ID, -pasturetrt, -rodenttrt, -plantID, -exclosure)
+  select(-sitetype,  -newquadrat)%>%
+  filter(!is.na(grazetrt))
 
-vegtog <- vegtog[c("year", "site", "plot", "quadrat", "precinct", "precinctcurrent", "preciptrt", 
-                   "grazetrt", "cowpies", "april", "october", "code", "binomial", "count", "cover", "flowermonth", 
-                   "form", "fullform", "lifecycle", "growthhabit")]
+## make a version of vegtot with/without filters
+vegtog_allhits<-vegtog #unfiltered vegtog
 
+#vegtog filtered by only with veg hits
+vegtog_vegonly<-vegtog_allhits%>%
+  filter(code!="nohit")
 
-# remove precip treatments that have irrigation or shelter
-vegtog <- vegtog %>%
-  mutate(preciptrt=tolower(preciptrt)) %>%
-  filter(preciptrt!="irrigation", preciptrt!="shelter", !is.na(binomial))
-
-# remove quadrats that have shifted between on off mound.
+#vegtog filtered for shifts in mounds
 current<-count(vegtog, precinctcurrent) %>%
   mutate(precinctcurrent=tolower(precinctcurrent))%>%
-  filter(n<150) %>%
-  filter(!(row_number() %in% c(20, 21, 30, 31, 33, 34, 35)))
+  filter((row_number() %in% c(3, 4, 5, 14, 15, 16, 17, 18, 19, 20, 27, 33, 34, 35, 36, 41)))
 current<-current$precinctcurrent
 
-vegtog <- vegtog %>%
+vegtog_moundshift <- vegtog_vegonly %>%
   mutate(precinctcurrent=tolower(precinctcurrent)) %>%
-  filter(!(precinctcurrent %in% current)) %>%
-  select(-precinctcurrent, -preciptrt, -cover)%>%
-  mutate(native=substr(form, start=1, stop=1))
+  filter(!(precinctcurrent %in% current))
+
+#vegtog shifted for preciptrt
+vegtog_nopreciptrt <- vegtog_moundshift %>%
+  filter(preciptrt!="irrigation", preciptrt!="shelter")
+vegtog<-vegtog_nopreciptrt
 
 # Clean up environment.
 rm(cowpies, funckey, plantkey, sitekey, vegdat, biomass, current)
 
 names(vegtog)
 str(vegtog)
+
+
 
 ##FN for Calculating SE
 calcSE<-function(x){

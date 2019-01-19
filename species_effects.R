@@ -82,7 +82,7 @@ p2<-ggplot(weedPlot, aes(x=year, y=totalcount, color=interaction(grazetrt, preci
   facet_wrap(~code)
 
 #Visualize
-ggarrange(y1, y2, ncol=1, nrow=2)
+ggarrange(p1, p2, ncol=1, nrow=2)
 
 
 

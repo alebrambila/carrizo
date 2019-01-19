@@ -175,17 +175,59 @@ ggplot(ifTrend, aes(x=year, y=mean, color=interaction(grazetrt, precinct)))+
 # Part 5: SPECIES INVASION TRENDS (Hordeum, Schismus, Bromus) #
 ###############################################################
 
-#General quadrat attrition
-quadCount<-vegtog%>%
+#General quadrat attrition  ## rerun with just quadrats we have at the end. salvage any?
+quadCount<-vegtog_allhits%>%
+  group_by(year, grazetrt, precinct) %>%
+  summarize(totquadcount=length(unique(quadrat))) 
+quadCount2<-vegtog_vegonly%>%
+  group_by(year, grazetrt, precinct) %>%
+  summarize(totquadcount=length(unique(quadrat))) 
+quadCount3<-vegtog_moundshift%>%
+  group_by(year, grazetrt, precinct) %>%
+  summarize(totquadcount=length(unique(quadrat))) 
+quadCount4<-vegtog%>%
   group_by(year, grazetrt, precinct) %>%
   summarize(totquadcount=length(unique(quadrat))) 
 #Visualize, we have to use proportions not total# of quads:
-ggplot(quadCount, aes(x=year, y=totquadcount, color=interaction(grazetrt, precinct))) +
+p1<-ggplot(quadCount, aes(x=year, y=totquadcount, color=interaction(grazetrt, precinct))) +
   geom_line() +
   annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=.25, ymax=48, alpha = .2)+
   annotate("text", x=2013.5, y=45, label="not grazed", alpha=.6)+
   scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
   labs(y="# of Quadrats")
+p2<-ggplot(quadCount2, aes(x=year, y=totquadcount, color=interaction(grazetrt, precinct))) +
+  geom_line() +
+  annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=.25, ymax=48, alpha = .2)+
+  annotate("text", x=2013.5, y=45, label="not grazed", alpha=.6)+
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  labs(y="# of Quadrats-nonveg hits")
+p3<-ggplot(quadCount3, aes(x=year, y=totquadcount, color=interaction(grazetrt, precinct))) +
+  geom_line() +
+  annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=.25, ymax=48, alpha = .2)+
+  annotate("text", x=2013.5, y=45, label="not grazed", alpha=.6)+
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  labs(y="# of Quadrats -nonveg, moundshift")
+p4<-ggplot(quadCount4, aes(x=year, y=totquadcount, color=interaction(grazetrt, precinct))) +
+  geom_line() +
+  annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=.25, ymax=48, alpha = .2)+
+  annotate("text", x=2013.5, y=45, label="not grazed", alpha=.6)+
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  labs(y="# of Quadrats -nonveg, moundshift, preciptrt")
+ggarrange(p1, p2, p3, p4)
+
+#which quadrats are we losing?
+lostQuads <- vegtog %>%
+  group_by(quadrat, grazetrt, precinct)%>%
+  summarize(lastyear=max((year)))
+lostQuads2 <- vegtog_allhits %>%
+  group_by(quadrat, grazetrt, precinct)%>%
+  summarize(lastyear=max((year)))
+p3<-ggplot(lostQuads, aes(x=lastyear)) +geom_bar(aes(fill=interaction(grazetrt,precinct)), position="dodge")+
+  ggtitle("just veg hits")
+p4<-ggplot(lostQuads2, aes(x=lastyear)) +geom_bar(aes(fill=interaction(grazetrt,precinct)), position="dodge")+
+  ggtitle("any hits")
+ggarrange(p1, p2, p3, p4)
+
 
 ## PROPORTION OF QUADRATS WITH KEY WEEDS
 HquadCount <- subset(vegtog, vegtog$code == "hormur") %>%
