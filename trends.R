@@ -175,8 +175,10 @@ ggplot(ifTrend, aes(x=year, y=mean, color=interaction(grazetrt, precinct)))+
 
 
 ###############################################################
-# Part 5: SPECIES INVASION TRENDS (Hordeum, Schismus, Bromus) #
+# Part 5: SPECIES INVASION TRENDS (Hordeum, Schismus, Bromus) #  
 ###############################################################
+#from here on out it doesnt make as much sense to do purged and compare grazed and ungrazed because they have different numbers of quadrats.  Have to do it all proportionally within treatment
+
 
 #General quadrat attrition  ## rerun with just quadrats we have at the end. salvage any?
 quadCount<-vegtog_allhits%>%
