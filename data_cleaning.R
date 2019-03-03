@@ -121,46 +121,42 @@ vegtog<- vegtog %>%
   select(-sitetype,  -newquadrat)%>%
   filter(!is.na(grazetrt))
 
-## make a version of vegtot with/without filters
-vegtog_allhits<-vegtog #unfiltered vegtog
-
-#vegtog filtered by only with veg hits
-vegtog_vegonly<-vegtog_allhits%>%
-  filter(code!="nohit")
-
-#vegtog filtered for shifts in mounds
+#shifted, a list of quadrats that ever shifted precinct classification
 current<-count(vegtog, precinctcurrent) %>%
   mutate(precinctcurrent=tolower(precinctcurrent))%>%
   filter((row_number() %in% c(3, 4, 5, 14, 15, 16, 17, 18, 19, 20, 27, 33, 34, 35, 36, 41)))
 current<-current$precinctcurrent
 
-to_purge <- vegtog_vegonly %>%
+shifted <- vegtog_vegonly %>%
   mutate(precinctcurrent=tolower(precinctcurrent)) %>%
   filter((precinctcurrent %in% current)) %>%
   select(quadrat)%>%
   group_by(quadrat)%>%
   summarize() #total of 70 more quadrats to purge
 
-vegtog_moundshift <- vegtog_vegonly %>%
-  mutate(precinctcurrent=tolower(precinctcurrent)) %>%
-  filter(!(precinctcurrent %in% current))
-
-#vegtog shifted for preciptrt
-vegtog_nopreciptrt <- vegtog_moundshift %>%
-  filter(preciptrt!="irrigation", preciptrt!="shelter")
-vegtog<-vegtog_nopreciptrt
-
-
-## what happens if we retroactively filter all years that wound up having irrigation treatments or having their mounds shift?
-#all quadrats in treatment plots and some specific quads from mounds
- 
+#precip, plots that ever had irrigation treatment on them
 precip<-precip%>%
   filter(preciptrt=="shelter"|preciptrt=="irrigation")
-vegtog_purged<-vegtog%>%
+
+
+### MODIFIED VEGTOGs###
+
+
+#vegtog with only hits on plants
+vegtog_vegonly<-vegtog_hitsonly%>%
+  filter(code!="nohit")
+
+# vegtog with plots that had precipitation treatments removed across all years
+vegtog_nopreciptrt%>%
   filter(!site %in% precip$site) %>% #take out any plots ever with irrigation in it
-  filter(!quadrat %in% to_purge$quadrat) #take out any quadrats that ever moved
 
+# vegtog with plots that had any quadrats shifted removed actoss all years
+vegtog_moundshift<-vegtog%>%
+  filter(!quadrat %in% shifted$quadrat) #take out any quadrats that ever moved
 
+# vegtog with 2015 and after removed (years with precip treatmetn)
+vegtog_pre2015<-vegtog%>%
+  filter(year<2015) #double count year, keep old ones in 2015
 
 # Clean up environment.
 rm(cowpies, funckey, plantkey, sitekey, vegdat, biomass, current)
