@@ -220,7 +220,7 @@ p4<-ggplot(quadCount4, aes(x=year, y=totquadcount, color=interaction(grazetrt, p
   labs(y="# of Quadrats -nonveg, moundshift, preciptrt")
 ggarrange(p1, p2, p3, p4)
 
-#which quadrats are we losing?
+u#which quadrats are we losing?
 lostQuads <- vegtog %>%
   group_by(quadrat, grazetrt, precinct)%>%
   summarize(lastyear=max((year)))
