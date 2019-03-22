@@ -72,13 +72,12 @@ vegtog <- left_join(vegdat, sitekey)%>%
 #Standardize column names
 plantkey<-left_join(plantkey, funckey)%>%
   select(c(1, 4, 5, 27, 33, 34))
-
 names(plantkey) = c("family", "code", "binomial", "native", "lifecycle", "growthhabit")
-
 vegtog <- left_join(vegtog, plantkey)
 
-### JOIN VEGTOG AND BIOMASS ###
 
+
+### JOIN VEGTOG AND BIOMASS ###
 #clean up and rename biomass columns
 biomass <- biomass %>%
   select("year", "Site type", "Block", "New Plot ID", "net weight", "season")
@@ -96,8 +95,8 @@ biomass <- biomass %>%
 vegtog <- left_join(vegtog, biomass)
 names(vegtog)
 
-### JOIN VEGTOG AND COWPIES ###
 
+### JOIN VEGTOG AND COWPIES ###
 #clean up and rename cowpies (plot/block level)
 cowpies <-cowpies %>%
   select(year, "alt site type", block, cowpies)
@@ -105,65 +104,56 @@ names(cowpies)<-c("year", "type","block", "cowpies")
 cowpies <-cowpies %>%
   mutate(site = paste(type, "R", block, sep=""))%>%
   select(-type, -block)
-
 ##sum cowpies by site and year
 cowpies <- aggregate(cowpies$cowpies, by=list(cowpies$site, cowpies$year),  FUN=sum)
 names(cowpies) <- c("site", "year", "cowpies")
-
 #join by site and year
 vegtog <- left_join(vegtog, cowpies)
-
-
-###CLEANUP###
 
 #remove columns
 vegtog<- vegtog %>%
   select(-sitetype,  -newquadrat)%>%
   filter(!is.na(grazetrt))
 
-#shifted, a list of quadrats that ever shifted precinct classification
+
+##############
+###VERSIONS###
+#############
+
+### ONLY HITS ON PLANTS
+vegtog_vegonly<-vegtog%>%
+  filter(code!="nohit")
+
+##### SHIFTED PRECINCT CLASSIFICATION REMOVED
 current<-count(vegtog, precinctcurrent) %>%
   mutate(precinctcurrent=tolower(precinctcurrent))%>%
   filter((row_number() %in% c(3, 4, 5, 14, 15, 16, 17, 18, 19, 20, 27, 33, 34, 35, 36, 41)))
 current<-current$precinctcurrent
-
-shifted <- vegtog_vegonly %>%
+shifted <- vegtog %>%
   mutate(precinctcurrent=tolower(precinctcurrent)) %>%
   filter((precinctcurrent %in% current)) %>%
   select(quadrat)%>%
   group_by(quadrat)%>%
   summarize() #total of 70 more quadrats to purge
+vegtog_moundshift<-vegtog%>%                           ### VEGTOG_MOUNDSHIFT
+  filter(!quadrat %in% shifted$quadrat)                #take out any quadrats that ever moved
 
-#precip, plots that ever had irrigation treatment on them
-precip<-precip%>%
+#####PRECIPITATION TREATMENTS REMOVED ACROSS ALL YEARS
+precip<-precip%>% #precip, plots that ever had irrigation treatment on them
   filter(preciptrt=="shelter"|preciptrt=="irrigation")
+vegtog_nopreciptrt<-vegtog_moundshift%>%                          ## VEGTOG_NOPRECIPTRT
+  filter(!site %in% precip$site)                       #take out any plots ever with irrigation in it
 
-
-### MODIFIED VEGTOGs###
-
-
-#vegtog with only hits on plants
-vegtog_vegonly<-vegtog_hitsonly%>%
-  filter(code!="nohit")
-
-# vegtog with plots that had precipitation treatments removed across all years
-vegtog_nopreciptrt%>%
-  filter(!site %in% precip$site) %>% #take out any plots ever with irrigation in it
-
-# vegtog with plots that had any quadrats shifted removed actoss all years
-vegtog_moundshift<-vegtog%>%
-  filter(!quadrat %in% shifted$quadrat) #take out any quadrats that ever moved
-
-# vegtog with 2015 and after removed (years with precip treatmetn)
-vegtog_pre2015<-vegtog%>%
+##### 2015 AND AFTER REMOVED (YEARS WITH PRECIPTRT)
+vegtog_pre2015<-vegtog_moundshift%>%
   filter(year<2015) #double count year, keep old ones in 2015
 
 # Clean up environment.
-rm(cowpies, funckey, plantkey, sitekey, vegdat, biomass, current)
+rm(cowpies, funckey, plantkey, sitekey, vegdat, biomass, current, precip, shifted, vegprecip)
 
 names(vegtog)
 str(vegtog)
-
+vegtog1<-vegtog
 
 
 ##FN for Calculating SE
