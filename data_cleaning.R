@@ -116,40 +116,77 @@ vegtog<- vegtog %>%
   filter(!is.na(grazetrt))
 
 
+
 ##############
 ###VERSIONS###
 #############
+
+
+#####PRECIPITATION TREATMENTS REMOVED ACROSS ALL YEARS
+precip<-precip%>% #precip, plots that ever had irrigation treatment on them
+  filter(preciptrt=="shelter"|preciptrt=="irrigation")
+vegtog<-vegtog%>%                          ## VEGTOG_NOPRECIPTRT
+  filter(!site %in% precip$site)%>%                       #take out any plots ever with irrigation in it
+  filter(block==2|block==3|block==4|block==6)                        # only keep paired plots
+
+test<-vegtog%>% #count quadrats in each plot with raw vegtog (consistent with tests run earlier in script)
+  group_by(year, site, quadrat, precinct)%>%
+  summarize() %>%
+  group_by(year, site, precinct)%>%
+  summarize(count=n())
+ggplot(test, aes(x=year, y=count)) +geom_line(aes(color=precinct)) +facet_wrap(~site) 
+#weird results include spike in EP 2, 3, 4 up in 2015 and down in EP4 in 2009
+
+
+##### SHIFTED PRECINCT CLASSIFICATION REMOVED
+#precinct column is an interpretation they already did of precinctcurrent, use this
+#current<-vegtog%>%
+#  group_by(quadrat, site, block, precinct,year)%>%
+#  summarize()%>%
+#  group_by(quadrat, site, block, precinct)%>%
+#  summarize(num=n())
+
+#count(vegtog, precinct) #%>%
+#  mutate(precinctcurrent=tolower(precinctcurrent))%>%
+#  filter((row_number() %in% c(3, 4, 5, 14, 15, 16, 17, 18, 19, 20, 27, 33, 34, 35, 36, 41)))
+#current<-current$precinctcurrent
+#shifted <- vegtog %>%
+#  mutate(precinctcurrent=tolower(precinctcurrent)) %>%
+#  filter((precinctcurrent %in% current)) %>%
+#  select(quadrat)%>%
+#  group_by(quadrat)%>%
+#  summarize() #total of 70 more quadrats to purge
+
+#vm<-vegtog%>%                           ### VEGTOG_MOUNDSHIFT
+#  filter(quadrat %in% shifted$quadrat)%>%
+#  group_by(quadrat, site, block, year, precinct, precinctcurrent)%>%
+#  summarize()%>%
+#  mutate(precinctcurrent=tolower(precinctcurrent))%>%
+#  filter(block==2|block==3|block==4|block==6)
+
+#vegtog_moundshift<-vegtog%>%                           ### VEGTOG_MOUNDSHIFT
+#  filter(!quadrat %in% shifted$quadrat)                #take out any quadrats that ever moved
+
+#test<-vegtog%>% #count quadrats in each plot with raw vegtog 
+#  group_by(year, site, quadrat, precinct)%>%
+#  summarize() %>%
+#  group_by(year, site, precinct)%>%
+#  summarize(count=n())
+#ggplot(test, aes(x=year, y=count)) +geom_line(aes(color=test$precinct)) +facet_wrap(~site) 
+
 
 ### ONLY HITS ON PLANTS
 vegtog_vegonly<-vegtog%>%
   filter(code!="nohit")
 
-##### SHIFTED PRECINCT CLASSIFICATION REMOVED
-current<-count(vegtog, precinctcurrent) %>%
-  mutate(precinctcurrent=tolower(precinctcurrent))%>%
-  filter((row_number() %in% c(3, 4, 5, 14, 15, 16, 17, 18, 19, 20, 27, 33, 34, 35, 36, 41)))
-current<-current$precinctcurrent
-shifted <- vegtog %>%
-  mutate(precinctcurrent=tolower(precinctcurrent)) %>%
-  filter((precinctcurrent %in% current)) %>%
-  select(quadrat)%>%
-  group_by(quadrat)%>%
-  summarize() #total of 70 more quadrats to purge
-vegtog_moundshift<-vegtog%>%                           ### VEGTOG_MOUNDSHIFT
-  filter(!quadrat %in% shifted$quadrat)                #take out any quadrats that ever moved
-
-#####PRECIPITATION TREATMENTS REMOVED ACROSS ALL YEARS
-precip<-precip%>% #precip, plots that ever had irrigation treatment on them
-  filter(preciptrt=="shelter"|preciptrt=="irrigation")
-vegtog_nopreciptrt<-vegtog_moundshift%>%                          ## VEGTOG_NOPRECIPTRT
-  filter(!site %in% precip$site)                       #take out any plots ever with irrigation in it
-
 ##### 2015 AND AFTER REMOVED (YEARS WITH PRECIPTRT)
-vegtog_pre2015<-vegtog_moundshift%>%
-  filter(year<2015) #double count year, keep old ones in 2015
+#vegtog_pre2015<-vegtog_moundshift%>%
+#  filter(year<2015) #double count year, keep old ones in 2015
+
+
 
 # Clean up environment.
-rm(cowpies, funckey, plantkey, sitekey, vegdat, biomass, current, precip, shifted, vegprecip)
+rm(cowpies, funckey, plantkey, sitekey, vegdat, biomass, current, precip, shifted, vegprecip, test)
 
 names(vegtog)
 str(vegtog)
@@ -169,3 +206,4 @@ theme_set(theme_bw(base_size = 12) + theme(text = element_text(size = 14)) +
                   strip.background = element_blank(),
                   panel.border = element_rect(colour = "black"),
                   legend.title=element_blank()))
+
