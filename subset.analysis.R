@@ -271,7 +271,90 @@ ggplot(subset(spec.quad, (year==2014|year==2017)&(code=="hormur"|code=="schara"|
 
 # TO DO: eventually work this in to a time block (before during after drought repeated measures ANOVA, but not yet)
 
-### TO DO: Ordinations
-# community composition ordinations for each year in the same NMDS - 
-# which way do they go (grazing factors as colors) 2014 thru 2017
-# all species/functional groupings
+##############################################
+## II. Community NMDS Ordinations 2014-2017 ##
+##############################################
+# note: both NMDS had to be run with dimensions k=3 to find solutions.
+
+### All Species
+plotspec <- select(vegtog, year, quadrat, code, count)%>%
+  group_by(quadrat, code, year) %>%
+  filter(code!="nohit"&code!="bare") %>%
+  summarize(meancount=mean(count))
+plotspec <-spread(plotspec, code, meancount, fill=0)%>%
+  as.data.frame()
+rownames(plotspec) <-paste(plotspec$quadrat, plotspec$year, sep = "_")
+plotspec <- select(plotspec, -quadrat, -year)
+plotspecNMDS <- metaMDS(plotspec, scale = T, k=3)
+plot(plotspecNMDS)
+
+data.scores <- as.data.frame(scores(plotspecNMDS, display=c("sites")))
+data.scores$ID <- row.names(data.scores)
+data.scores <- as_tibble(data.scores) %>%
+  separate(ID, c("quadrat", "quadrat2", "year"), by="=") %>%
+  mutate(quadrat = paste(quadrat, quadrat2, sep = "-")) %>%
+  select(-quadrat2)
+
+plotkey <- vegtog %>%
+  select(quadrat, precinct, grazetrt)
+data.scores <- right_join(plotkey, data.scores)
+
+# Extract and format species scores
+species.scores <- as.data.frame(scores(plotspecNMDS, display=c("species")))
+species.scores$species <- row.names(species.scores)
+species.scores <- as_tibble(species.scores)
+
+ggplot() +
+  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) +  # add the species labels
+  geom_point(data=subset(data.scores, year>=2014),aes(x=NMDS1,y=NMDS2,shape=interaction(precinct, grazetrt), color=interaction(precinct, grazetrt)),size=3) + # add the point markers
+  #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
+  #  scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
+  coord_equal() +
+  theme_bw() + facet_wrap(~year)
+
+
+### Functional Groups
+plotfunc <- select(vegtog, year, quadrat, code, lifecycle, growthhabit, native, count)%>% 
+  filter(code!="nohit"&code!="bare") %>%
+  mutate(func=paste(lifecycle, growthhabit, native, sep="_"))%>%
+  group_by(quadrat, func, year) %>%
+  summarize(meancount=mean(count))
+plotfunc <-spread(plotfunc, func, meancount, fill=0)%>%
+  as.data.frame()%>%
+  select(-NA_NA_NA, -perennial_grass_n) #only one perennial grass ever, run without column
+rownames(plotfunc) <-paste(plotfunc$quadrat, plotfunc$year, sep = "_")
+plotfunc <- select(plotfunc, -quadrat, -year)
+plotfuncNMDS <- metaMDS(plotfunc, scale = T, k=3)
+plot(plotfuncNMDS)
+
+data.scores <- as.data.frame(scores(plotfuncNMDS, display=c("sites")))
+data.scores$ID <- row.names(data.scores)
+data.scores <- as_tibble(data.scores) %>%
+  separate(ID, c("quadrat", "quadrat2", "year"), by="=") %>%
+  mutate(quadrat = paste(quadrat, quadrat2, sep = "-")) %>%
+  select(-quadrat2)
+
+plotkey <- vegtog %>%
+  select(quadrat, precinct, grazetrt)
+data.scores <- right_join(plotkey, data.scores)
+
+# Extract and format species scores
+species.scores <- as.data.frame(scores(plotfuncNMDS, display=c("species")))
+species.scores$species <- row.names(species.scores)
+species.scores <- as_tibble(species.scores)
+
+# NMDS PLOT by FN Group
+ggplot() +
+  geom_point(data=data.scores,aes(x=NMDS1,y=NMDS2,shape=interaction(precinct, grazetrt), color=interaction(precinct, grazetrt)),size=3) + # add the point markers
+  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) +  # add the species labels
+  #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
+  #  scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
+  coord_equal() +
+  theme_bw() + facet_wrap(~year)
+
+
+
+
+
+
+
