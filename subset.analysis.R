@@ -299,7 +299,33 @@ plotspec<-subset(plotspec, !(rownames(plotspec)%in%t))
 
 plotspecNMDS <- metaMDS(plotspec, scale = T, k=4)
 plot(plotspecNMDS)
-\
+
+
+data.scores <- as.data.frame(scores(plotspecNMDS, display=c("sites")))
+data.scores$ID <- row.names(data.scores)
+data.scores <- as_tibble(data.scores) %>%
+  separate(ID, c("quadrat", "quadrat2", "year"), by="=") %>%
+  mutate(quadrat = paste(quadrat, quadrat2, sep = "-")) %>%
+  select(-quadrat2)
+
+plotkey <- vegtog %>%
+  select(quadrat, precinct, grazetrt)
+data.scores <- right_join(plotkey, data.scores)
+
+# Extract and format species scores
+species.scores <- as.data.frame(scores(plotspecNMDS, display=c("species")))
+species.scores$species <- row.names(species.scores)
+species.scores <- as_tibble(species.scores)
+
+ggplot() +
+  geom_point(data=subset(data.scores, year>2013),aes(x=NMDS1,y=NMDS2,shape=interaction(precinct, grazetrt), color=interaction(precinct, grazetrt)),size=3) + # add the point markers
+  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) +  # add the species labels
+  #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
+  #  scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
+  coord_equal() +
+  theme_bw() + facet_wrap(~year)
+
+
 
 ### Functional Groups
 plotfunc <- select(vegtog, year, quadrat, code, lifecycle, growthhabit, native, count)%>% 
