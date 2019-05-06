@@ -179,18 +179,168 @@ ggplot(test, aes(x=year, y=count)) +geom_line(aes(color=precinct)) +facet_wrap(~
 vegtog_vegonly<-vegtog%>%
   filter(code!="nohit")
 
+  
+
 ##### 2015 AND AFTER REMOVED (YEARS WITH PRECIPTRT)
 #vegtog_pre2015<-vegtog_moundshift%>%
 #  filter(year<2015) #double count year, keep old ones in 2015
 
 
+#####################################################
+###  PRECIP                                       ###
+#####################################################
+climate<-read_csv("/Users/alejandrobrambila/Documents/Repositories/Carrizo/carrizo/CAZC1climate.csv", skip=11)%>%
+  select(-1)%>%
+  separate(X2, into=c("year", "month", "day"), sep="-")%>%
+  separate(day, into=c("day", "time"), sep=" ")%>%
+  group_by(year, month, day)%>%
+  filter(!is.na(Millimeters), !is.na(Celsius))%>%
+  summarize(mm=median(Millimeters), celsius=mean(Celsius))%>%
+  group_by(year, month)%>%
+  summarize(startmm=min(mm), endmm=max(mm), mmt=mean(celsius))%>%
+  mutate(preciptest=endmm-startmm)%>%
+  mutate(precip=ifelse(preciptest<70, as.character(preciptest), "CHECK"))
+
+climate[11, 7]<-as.numeric(climate[11, 6])-as.numeric(climate[10, 4])
+climate[13, 7]<-climate[13, 6]
+climate[24, 7]<-climate[25, 3]
+climate[36, 7]<-as.numeric(climate[36, 4])-as.numeric(climate[35, 4])
+climate[37, 7]<-climate[37, 6]
+climate[48, 7]<-climate[49, 3]
+climate[51, 7]<-climate[51, 6]
+climate[60, 7]<-climate[61, 3]
+climate[73, 7]<-as.numeric(climate[73, 4])-as.numeric(climate[72, 4])+as.numeric(climate[74, 3])
+climate[84, 7]<-climate[85, 3]
+climate[96, 7]<-as.numeric(climate[96, 4])-as.numeric(climate[95, 4])+as.numeric(climate[97, 3])
+climate[108, 7]<-0
+climate[121, 7]<-climate[121, 4]
+climate[122, 7]<-climate[122, 6]
+
+climate<-climate%>%
+  ungroup()%>%
+  mutate(month=as.numeric(month))%>%
+  mutate(year=as.numeric(year))%>%
+  mutate(rainyear=ifelse(month>7, year+1, year))%>%
+  mutate(preciplegacy1=rainyear+1)%>%
+  mutate(preciplegacy2=rainyear+2)%>%
+  mutate(precip=as.numeric(precip))%>%
+  group_by(rainyear, preciplegacy1, preciplegacy2)%>%
+  summarize(precip=sum(precip), MAT=mean(mmt))%>%
+  filter(rainyear!=2007, rainyear!=2018)
+
+precip<-ggplot(climate)+geom_bar(aes(x=as.factor(rainyear), y=precip), stat="identity")
+MAT<-ggplot(climate)+geom_line(aes(x=as.integer(rainyear), y=MAT))
+
+ggarrange(precip, MAT)
+
+
+
+rainyear<-climate%>%
+  mutate(year=rainyear)%>%
+  ungroup()%>%
+  select(6:4)
+
+PL1<-climate%>%
+  mutate(year=preciplegacy1)%>%
+  mutate(legacyOne=precip)%>%
+  ungroup()%>%
+  select(6:7)
+  
+PL2<-climate%>%
+  mutate(year=preciplegacy2)%>%
+  mutate(legacyTwo=precip)%>%
+  ungroup()%>%
+select(6:7)
+
+vegtog_clim<-left_join(vegtog, rainyear)
+vegtog_clim<-left_join(vegtog_clim, PL1)
+vegtog_clim<-left_join(vegtog_clim, PL2)
+
+
+##################################################
+# EPILOGUE: WHY ARENT QUADRATS BALANCED STILL??? #
+##################################################
+
+#General quadrat attrition, see that in 2015 and 16 in 2, 3, and 4 ungrazed # of quads is too high
+quadCount<-vegtog%>%
+  group_by(year, grazetrt, block, precinct) %>%
+  summarize(totquadcount=length(unique(quadrat))) 
+
+ggplot(quadCount, aes(x=year, y=totquadcount, color=interaction(grazetrt, precinct))) +
+  geom_line() +
+  annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=.25, ymax=10, alpha = .2)+
+  annotate("text", x=2013.5, y=11, label="not grazed", alpha=.6)+
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  labs(y="# of Quadrats")+facet_wrap(~block)
+
+# what is going on in 2015?
+#in 2015, EP2 (12), EP3 (11) and EP4 (12) have more quadrats than normal (8)
+#in 2016, EP2 and EP3 still have 9 quadrats. 
+# rule: as new plots are added remove all old plots that dont go forwards.  keep them in previous years
+
+vegsum<-vegtog%>%
+  group_by(quadrat, site, year, grazetrt)%>%
+  summarize()%>%
+  filter((year==2014|year==2015|year==2016|year==2017)&(site=="EP2"|site=="EP3"|site=="EP4"))%>%
+  ungroup()%>%
+  select(year, site, quadrat)%>%
+  group_by(year, site)%>%
+  mutate(n=n())%>%
+  mutate(quadrat=substr(quadrat, 5, 9))%>%
+  mutate(yrsite=paste(year, site, sep="_"))%>%
+  select(-n, year, site)%>%
+  spread(quadrat, year)
+# EP2: new in 15=0210, 0402, 0507.  
+  #end in 2015: 1213, 1402... remove from 2015       (11 to 8)
+  #end in 2016: 0805... remove from 2015 and 2016.   (9 to 8)
+# EP3: new in 15=N1409 P1503, N1507.  
+  #end in 2015: P1015... remove from 2015  (12 to 8)
+  #end in 2016: P1208, N1506... remove from 2015 and 2016.  
+  #P1618, N0307 missed in 2016.  leave it
+  #N0209 only 2016 leave it
+# EP4: new in 15=1012, 1412, 1607, 1712.  
+  #end in 2015: 1719, 0816, 0311, 1516 remove from 2015  (12 to 8)
+
+vegsum<-vegtog%>%
+  group_by(quadrat, site, year, grazetrt)%>%
+  summarize()%>%
+  filter((year==2014|year==2015|year==2016|year==2017)&(site=="EP2"|site=="EP3"|site=="EP4"))%>%
+  ungroup()%>%
+  select(year, site, quadrat)%>%
+  select(1, 3)%>%
+  mutate(new=ifelse((year==2015)&(quadrat=="EP2-N1213"|quadrat=="EP2-P1402"|quadrat=="EP2-P0805"|
+                                    quadrat=="EP3-P1015"|quadrat=="EP3-P1208"|quadrat=="EP3-N1506"|
+                                    quadrat=="EP4-N1719"|quadrat=="EP4-N0816"|quadrat=="EP4-P0311"|
+                                    quadrat=="EP4-P1516"),"bad", "good"))%>%
+  mutate(new=ifelse((year==2016)&(quadrat=="EP2-P0805"|quadrat=="EP3-P1208"|quadrat=="EP3-N1506"), "bad", new))
+
+quadCount2<-left_join(vegtog, vegsum)%>%
+  mutate(new=ifelse(is.na(new), "good", new))%>%
+  filter(new!="bad")%>%
+  group_by(year, grazetrt, block, precinct) %>%
+  summarize(totquadcount=length(unique(quadrat)))
+ggplot(quadCount2, aes(x=year, y=totquadcount, color=interaction(grazetrt, precinct))) +
+  geom_line() +
+  annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=.25, ymax=10, alpha = .2)+
+  annotate("text", x=2013.5, y=11, label="not grazed", alpha=.6)+
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  labs(y="# of Quadrats")+facet_wrap(~block)
+
+# extra plots cleaned out.  apply same procedure to vegtog
+vegtog<-left_join(vegtog, vegsum)%>%
+  mutate(new=ifelse(is.na(new), "good", new))%>%
+  filter(new!="bad")%>%
+  select(-new) #vegtog lost about 150 observations.  sitting at EXACTLY 5000 now, cool! 
+
+
+
 
 # Clean up environment.
+rm(PL1, PL2, rainyear, precip, MAT, climate)
 rm(cowpies, funckey, plantkey, sitekey, vegdat, biomass, current, precip, shifted, vegprecip, test)
 
 names(vegtog)
 str(vegtog)
-vegtog1<-vegtog
 
 
 ##FN for Calculating SE
