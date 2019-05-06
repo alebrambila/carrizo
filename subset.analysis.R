@@ -195,12 +195,15 @@ func.agg<-vegtog%>%
   summarize(count=sum(count)) %>%
   filter(!is.na(native))%>%
   mutate(func=paste(growthhabit, native, sep="_"))
-
+func.agg<-left_join(func.agg, totalStems)
+func.agg<-func.agg%>%
+  mutate(prop=count/stems)
+  
 # Vis option 1
-ggplot(subset(func.agg, year==2014|year==2017), 
+ggplot(subset(funcTrend, (year==2014|year==2017)&(func=="grass_i")), 
        aes(x=interaction(grazetrt, precinct), 
            y=count, color=interaction(grazetrt, precinct))) +
-  geom_boxplot() +
+  geom_boxplot(aes(middle=mean(count))) +
   theme(axis.text.x=element_blank()) +
   geom_jitter(width=.1, color="black") +
   facet_grid(func~year, scales="free") + 
@@ -208,6 +211,15 @@ ggplot(subset(func.agg, year==2014|year==2017),
                      values=c("pink", "brown", "lightblue", "darkblue")) +
   xlab("Treatment") +
   ggtitle("Functional Group Cover")
+
+ggplot(funcTrendsum, aes(x=interaction(grazetrt, precinct), 
+                      y=mean, fill=func))+
+  geom_bar(stat="identity")+
+  geom_errorbar(aes(x=year, ymin=mean-se, ymax=mean+se)) +
+  facet_wrap(~year)#+
+  scale_fill_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+                     values=c("pink", "brown", "lightblue", "darkblue"))
+
 
 # Vis option 2
 ggplot(subset(func.agg, year==2014|year==2017),   
@@ -237,6 +249,19 @@ ggplot(subset(vegtog, (year==2014|year==2017)&(code=="hormur"|code=="schara"|cod
   xlab("Treatment") + ylab ("log(Count)") + 
   ggtitle("Invasive grass cover")
 # Nothin much, look at with key native too. 
+
+# now with proportion of the community that they are:
+ggplot(subset(vegtog, (year==2014|year==2017)&(code=="hormur"|code=="schara"|code=="bromad")), 
+       aes(x=interaction(grazetrt, precinct), 
+           y=prop, color=interaction(grazetrt, precinct))) +
+  geom_boxplot() +
+  theme(axis.text.x=element_blank()) +
+  geom_jitter(width=.1, color="black") +
+  facet_grid(code~year, scales="free") + 
+  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+                     values=c("pink", "brown", "lightblue", "darkblue")) +
+  xlab("Treatment") + ylab ("log(Count)") + 
+  ggtitle("Invasive grass cover")
 
 
 # b. How many quadrats are key weeds present in?
@@ -300,6 +325,8 @@ plotspec<-subset(plotspec, !(rownames(plotspec)%in%t))
 plotspecNMDS <- metaMDS(plotspec, scale = T, k=4)
 plot(plotspecNMDS)
 
+# draw dispersion ellipses around data points
+ordiellipse(plotspecNMDS, data.scores$trt, kind = "sd", label = T)
 
 data.scores <- as.data.frame(scores(plotspecNMDS, display=c("sites")))
 data.scores$ID <- row.names(data.scores)
@@ -309,8 +336,11 @@ data.scores <- as_tibble(data.scores) %>%
   select(-quadrat2)
 
 plotkey <- vegtog %>%
-  select(quadrat, precinct, grazetrt)
-data.scores <- right_join(plotkey, data.scores)
+  select(quadrat, precinct, grazetrt)%>%
+  group_by(quadrat, precinct, grazetrt)%>%
+  summarize()
+data.scores <- left_join(data.scores, plotkey)%>%
+  mutate(trt=paste(grazetrt, precinct, sep="_"))
 
 # Extract and format species scores
 species.scores <- as.data.frame(scores(plotspecNMDS, display=c("species")))
@@ -318,12 +348,15 @@ species.scores$species <- row.names(species.scores)
 species.scores <- as_tibble(species.scores)
 
 ggplot() +
-  geom_point(data=subset(data.scores, year>2013),aes(x=NMDS1,y=NMDS2,shape=interaction(precinct, grazetrt), color=interaction(precinct, grazetrt)),size=3) + # add the point markers
-  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) +  # add the species labels
+  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
+  geom_jitter(data=subset(data.scores, year>2013),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
+   # add the species labels
   #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
   #  scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
   coord_equal() +
-  theme_bw() + facet_wrap(~year)
+  scale_fill_manual(labels=c("Grazed, Off-Precinct", "Grazed, On-Precinct","Ungrazed, Off-Precinct",  "Ungrazed, On-Precinct"), 
+                    values=c("pink", "lightblue", "brown",  "darkblue"))+
+  theme_bw() + facet_wrap(~year, scales="free")
 
 
 
@@ -367,8 +400,37 @@ ggplot() +
   theme_bw() + facet_wrap(~year)
 
 
+data(dune)
+# calculate distance for NMDS
+sol <- metaMDS(dune)
+# Create meta data for grouping
+MyMeta = data.frame(
+  sites = c(2,13,4,16,6,1,8,5,17,15,10,11,9,18,3,20,14,19,12,7),
+  amt = c("hi", "hi", "hi", "md", "lo", "hi", "hi", "lo", "md", "md", "lo", 
+          "lo", "hi", "lo", "hi", "md", "md", "lo", "hi", "lo"),
+  row.names = "sites")
 
 
+# same in ggplot2
+NMDS = data.frame(MDS1 = sol$points[,1], MDS2 = sol$points[,2],group=MyMeta$amt)
+ord<-ordiellipse(sol, MyMeta$amt, display = "sites", 
+                 kind = "se", conf = 0.95, label = T)
+
+veganCovEllipse<-function (cov, center = c(0, 0), scale = 1, npoints = 100) 
+{
+  theta <- (0:npoints) * 2 * pi/npoints
+  Circle <- cbind(cos(theta), sin(theta))
+  t(center + scale * t(Circle %*% chol(cov)))
+}
 
 
+df_ell <- data.frame()
+for(g in levels(NMDS$group)){
+  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$group==g,],
+                                                   veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale)))
+                                ,group=g))
+}
+
+ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = group)) +
+  geom_path(data=df_ell, aes(x=NMDS1, y=NMDS2,colour=group), size=1, linetype=2)
 
