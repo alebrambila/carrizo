@@ -135,8 +135,8 @@ summary(lm(april~legacyOne, vegtog_clim)) #.2% r2
 ## LME: continuous precip, factor grazed, factor mound
 library(nlme)
 ## NOT WORKING
-summary(lme(april~precip*grazetrt*precinct, random=1|grazetrt/block, data=vegtog_clim, na.action = na.omit))
-
+mm<-lme(april~precip*grazetrt*precinct, random=~1|block, data=vegtog_clim, na.action = na.omit)
+summary(mm)
 ###################################
 # Part 4: FUNCTIONAL GROUP TRENDS #
 ###################################
