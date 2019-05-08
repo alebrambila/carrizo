@@ -336,7 +336,7 @@ vegtog<-left_join(vegtog, vegsum)%>%
 
 
 # Clean up environment.
-rm(PL1, PL2, rainyear, precip, MAT, climate)
+rm(PL1, PL2, rainyear, precip, MAT)
 rm(cowpies, funckey, plantkey, sitekey, vegdat, biomass, current, precip, shifted, vegprecip, test)
 
 names(vegtog)
