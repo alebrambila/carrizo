@@ -16,7 +16,9 @@
 
 
 
-  
+library(nlme)  
+library(multcomp)
+
 #################### CLIMATE  #####################
 clim<-ggplot(climate)+geom_bar(aes(x=as.integer(rainyear), y=precip), stat="identity")+
   geom_line(aes(x=as.integer(rainyear), y=MAT/.05))+
@@ -113,10 +115,20 @@ ggplot()+
 
 ## run a two way ANOVA: grazing and mound in 2014, grazing and mound in 2017.  are these differences significant?
 vegtog.plot<-vegtog_clim%>%
-  group_by(year, site, april, october, grazetrt, precinct, block, precip)%>%
+  group_by(year, site, april, october, grazetrt, precinct, block, precip, quadrat)%>%
   summarize()%>%
   ungroup()%>%
-  mutate(grazetrt=as.factor(grazetrt), precinct=as.factor(precinct))
+  mutate(grazetrt=as.factor(grazetrt), precinct=as.factor(precinct), alltrt = as.factor(paste(grazetrt, precinct, sep = "_")))
+
+l <- lme(april~factor(grazetrt)*factor(precinct), random =~1|factor(block),  subset(vegtog.plot, year==2017), na.action = na.omit)
+anova(l)
+
+
+l <- lme(april~alltrt, random =~1|factor(block),  subset(vegtog.plot, year==2017), na.action = na.omit)
+anova(l)
+
+summary(glht(l, linfct=mcp(alltrt="Tukey")))
+
 
 biomass.2017.anova <- aov(april~factor(grazetrt)*factor(precinct)+factor(block), subset(vegtog.plot, year==2017))
 summary(biomass.2017.anova)
