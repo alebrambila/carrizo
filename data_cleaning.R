@@ -189,7 +189,7 @@ vegtog_vegonly<-vegtog%>%
 #####################################################
 ###  PRECIP                                       ###
 #####################################################
-climate<-read_csv("/Users/alejandrobrambila/Documents/Repositories/Carrizo/carrizo/CAZC1climate.csv", skip=11)%>%
+climate<-read_csv("CAZC1climate.csv", skip=11)%>%
   select(-1)%>%
   separate(X2, into=c("year", "month", "day"), sep="-")%>%
   separate(day, into=c("day", "time"), sep=" ")%>%
@@ -342,6 +342,7 @@ rm(cowpies, funckey, plantkey, sitekey, vegdat, biomass, current, precip, shifte
 names(vegtog)
 str(vegtog)
 
+vegtog<-unique(vegtog)
 
 ##FN for Calculating SE
 calcSE<-function(x){
