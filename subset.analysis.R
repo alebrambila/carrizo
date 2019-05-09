@@ -28,22 +28,22 @@ library(tidyverse)
 ### 1. Species Richness
 
 # Quadrat Level
-alpha.rich <- vegtog %>%
-  filter(code!="nohit") %>%
-  group_by(year, grazetrt, quadrat, site, precinct) %>%
-  summarize(richness=length(unique(code)))
+#alpha.rich <- vegtog %>%
+#  filter(code!="nohit") %>%
+#  group_by(year, grazetrt, quadrat, site, precinct) %>%
+#  summarize(richness=length(unique(code)))#
 
-ggplot(subset(alpha.rich, year==2014|year==2017), 
-       aes(x=interaction(grazetrt, precinct), 
-           y=richness, color=interaction(grazetrt, precinct))) + 
-  geom_boxplot() +
-  theme(axis.text.x=element_blank()) +
-  geom_jitter(width=.1, color="black") +
-  facet_wrap(~year) + 
-  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
-                     values=c("pink", "brown", "lightblue", "darkblue")) +
-  xlab("Treatment") +
-  ggtitle("Quad-level Species Richness")
+#ggplot(subset(alpha.rich, year==2014|year==2017), 
+#       aes(x=interaction(grazetrt, precinct), 
+#           y=richness, color=interaction(grazetrt, precinct))) + 
+#  geom_boxplot() +
+#  theme(axis.text.x=element_blank()) +
+#  geom_jitter(width=.1, color="black") +
+#  facet_wrap(~year) + 
+#  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+##                     values=c("pink", "brown", "lightblue", "darkblue")) +
+#  xlab("Treatment") +
+#  ggtitle("Quad-level Species Richness")
 
 # Plot Level -- not enough replicates
 #gamma.rich <- vegtog %>%
@@ -90,28 +90,28 @@ ggplot(subset(alpha.shan, year==2014|year==2017),
   ggtitle("Quad-level Shannon Diversity")
 
 #native quad level shannon diversity
-alpha.shan.n <- vegtog %>%
-  filter(year==2014|year==2017)%>%
-  filter(native=="n")
-alpha.shan.n <- left_join(alpha.shan.n, community_diversity(alpha.shan.n, time.var = "year", abundance.var="count", replicate.var="quadrat", metric = c("Shannon")))
-alpha.shan.n <- alpha.shan.n %>%
-  group_by(year, site, quadrat, precinct, grazetrt, Shannon) %>%
-  summarize() %>%
-  group_by()
+#alpha.shan.n <- vegtog %>%
+#  filter(year==2014|year==2017)%>%
+#  filter(native=="n")
+#alpha.shan.n <- left_join(alpha.shan.n, community_diversity(alpha.shan.n, time.var = "year", abundance.var="count", replicate.var="quadrat", metric = c("Shannon")))
+#alpha.shan.n <- alpha.shan.n %>%
+#  group_by(year, site, quadrat, precinct, grazetrt, Shannon) %>%
+#  summarize() %>%
+#  group_by()
 
-ggplot(subset(alpha.shan.n, year==2014|year==2017), 
-       aes(x=interaction(grazetrt, precinct), 
-           y=Shannon, color=interaction(grazetrt, precinct))) + 
-  geom_boxplot() +
-  theme(axis.text.x=element_blank()) +
-  geom_jitter(width=.1, color="black") +
-  facet_wrap(~year) + 
-  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
-                     values=c("pink", "brown", "lightblue", "darkblue")) +
-  xlab("Treatment") +
-  ggtitle("Quad-level Native Shannon Diversity")
+#ggplot(subset(alpha.shan.n, year==2014|year==2017), 
+#       aes(x=interaction(grazetrt, precinct), 
+#           y=Shannon, color=interaction(grazetrt, precinct))) + 
+#  geom_boxplot() +
+#  theme(axis.text.x=element_blank()) +
+#  geom_jitter(width=.1, color="black") +
+#  facet_wrap(~year) + 
+#  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+#                     values=c("pink", "brown", "lightblue", "darkblue")) +
+#  xlab("Treatment") +
+#  ggtitle("Quad-level Native Shannon Diversity")
 
-## alpha.div STATS ##
+## SHANNON DIVERSITY STATS ##
 shan.2017.anova <- aov(Shannon~factor(grazetrt)*factor(precinct)+factor(site), subset(alpha.shan, year==2017))
 summary(shan.2017.anova)
 TukeyHSD(shan.2017.anova) #ungrazed p-n is significantly different, but grazed p-n is not. 
@@ -119,7 +119,7 @@ plot(TukeyHSD(shan.2017.anova))
 
 shan.2014.anova <- aov(Shannon~factor(grazetrt)*factor(precinct)+factor(site), subset(alpha.shan, year==2014))
 summary(shan.2014.anova) #grazetrt is a very significant main effect
-TukeyHSD(shan.2014.anova) #p and n no longer differentiat, everything else does
+TukeyHSD(shan.2014.anova) #p and n no longer differentiate, everything else does
 plot(TukeyHSD(shan.2014.anova))
 
 ### 3. Biomass
@@ -175,7 +175,7 @@ ggplot(subset(funcTrend, (year==2014|year==2017)&(func=="grass_i")),
   xlab("Treatment") +
   ggtitle("Functional Group Cover")
 
-ggplot(subset(funcTrendsum, year>2013), aes(x=func, 
+ggplot(subset(funcTrendsum, year==2014|year==2017), aes(x=func, 
                       y=mean, fill=interaction(grazetrt, precinct)))+
   geom_bar(stat="identity", position="dodge")+
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position="dodge") +
@@ -186,16 +186,16 @@ ggplot(subset(funcTrendsum, year>2013), aes(x=func,
 
 
 # Vis option 2
-ggplot(subset(func.agg, year==2014|year==2017),   
-       aes(x=func,
-           y=count, color=interaction(grazetrt, precinct))) +
-  geom_boxplot() +
-  geom_jitter(width=.1, color="black") +
-  facet_grid(interaction(grazetrt, precinct)~year, scales="free") + 
-  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
-                     values=c("pink", "brown", "lightblue", "darkblue")) +
-  xlab("Treatment") +
-  ggtitle("Functional Group Cover")
+#ggplot(subset(func.agg, year==2014|year==2017),   
+#       aes(x=func,
+#           y=count, color=interaction(grazetrt, precinct))) +
+#  geom_boxplot() +
+#geom_jitter(width=.1, color="black") +
+#  facet_grid(interaction(grazetrt, precinct)~year, scales="free") + 
+#  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+#                     values=c("pink", "brown", "lightblue", "darkblue")) +
+#  xlab("Treatment") +
+#  ggtitle("Functional Group Cover")
 
 
 ### 5. Specific Native and Invasive species % cover
@@ -227,73 +227,13 @@ summary(schara.2017.anova)
 TukeyHSD(schara.2017.anova) #nothing
 
 
-################################################### Nothin much, look at with key native too. NOT MUCH NATIVE GRASS AT ALL
-
-
-
-ggplot(subset(vegtog, (year>2013)&(code=="hormur"|code=="schara"|code=="bromad")), 
-       aes(x=interaction(grazetrt, precinct), 
-           y=log(count), color=interaction(grazetrt, precinct))) +
-  geom_boxplot() +
-  theme(axis.text.x=element_blank()) +
-  geom_jitter(width=.1, color="black") +
-  facet_grid(code~year, scales="free") + 
-  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
-                     values=c("pink", "brown", "lightblue", "darkblue")) +
-  xlab("Treatment") + ylab ("log(Count)") + 
-  ggtitle("Invasive grass cover")
-
-# now with proportion of the community that they are:
-#ggplot(subset(vegtog, (year==2014|year==2017)&(code=="hormur"|code=="schara"|code=="bromad")), 
-#       aes(x=interaction(grazetrt, precinct), 
-#           y=prop, color=interaction(grazetrt, precinct))) +
-#  geom_boxplot() +
-#  theme(axis.text.x=element_blank()) +
-#  geom_jitter(width=.1, color="black") +
-#  facet_grid(code~year, scales="free") + 
-#  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
-#                     values=c("pink", "brown", "lightblue", "darkblue")) +
-#  xlab("Treatment") + ylab ("log(Count)") + 
-#  ggtitle("Invasive grass cover")
-
-
-# b. How many quadrats are key weeds present in?
-#spec.quad <- vegtog%>%
-#  group_by(year, grazetrt, precinct, code)%>%
-#  mutate(qcount=length(unique(quadrat)))%>%
-#  group_by(year, grazetrt, precinct, code, qcount)%>%
-#  summarize()
-
-##ggplot(subset(spec.quad, (year==2014|year==2017)&(code=="hormur"|code=="schara"|code=="bromad")), 
-##       aes(x=interaction(grazetrt, precinct), 
-#           y=qcount, fill=interaction(grazetrt, precinct))) +
-#  geom_bar(stat="identity") +
-#  theme(axis.text.x=element_blank()) +
-#  facet_grid(code~year, scales="free") + 
-#  scale_fill_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
-#                     values=c("pink", "brown", "lightblue", "darkblue")) +
-#  xlab("Treatment") + ylab ("Number of occupied quadrats") + 
-#  ggtitle("Invasive grass distribution")
-# grazing slows spread of invasives on-precinct, but acellerates it off-precinct! 
-
-# TO DO: what is the native species of concern in this system?  Repeat:
-#ggplot(subset(spec.quad, (year==2014|year==2017)&(code=="???????")), 
-#       aes(x=interaction(grazetrt, precinct), 
-#           y=qcount, fill=interaction(grazetrt, precinct))) +
-#  geom_bar(stat="identity") +
-#  theme(axis.text.x=element_blank()) +
-#  facet_grid(code~year, scales="free") + 
-#  scale_fill_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
-#                    values=c("pink", "brown", "lightblue", "darkblue")) +
-#  xlab("Treatment") + ylab ("Number of occupied quadrats") + 
-#  ggtitle("Native bunchgrass distribution")
-
+# Nothin much, look at with key native too. NOT MUCH NATIVE GRASS AT ALL
 # TO DO: eventually work this in to a time block (before during after drought repeated measures ANOVA, but not yet)
 
 ##############################################
 ## II. Community NMDS Ordinations 2014-2017 ##
 ##############################################
-# note: both NMDS had to be run with dimensions k=3 to find solutions.
+# note: NMDS had to be run with dimensions k=4 to find solutions.
 # multivariate view of communities - not worried about who is who
 
 ### All Species
@@ -336,8 +276,8 @@ plotkey <- vegtog %>%
   mutate(quadyr=paste(quadrat, year, sep = "_"))%>%
   group_by(quadyr, precinct, grazetrt)%>%
   summarize()
-plotkey<-subset(plotkey, (plotkey$quadyr%in%rownames(plotspec)))
-#plotspec<-subset(plotspec, rownames(plotspec)%in%plotkey$quadyr)
+plotkey2<-subset(plotkey, (plotkey$quadyr%in%rownames(plotspec)))
+plotspec<-subset(plotspec, rownames(plotspec)%in%plotkey2$quadyr)
 
 data.scores <- left_join(data.scores, plotkey)%>%
   mutate(trt=paste(grazetrt, precinct, sep="_"))
@@ -467,7 +407,6 @@ multivariate_difference(subset(vegtog, year==2017&grazetrt=="ungrazed"&code!="no
 
 
 # PERMANOVA
-
 plotkey2<-as.tibble(rownames(plotspec))%>%
   mutate(quadrat=substr(value, 1,9))%>%
   mutate(quadyr=value)%>%
@@ -481,25 +420,32 @@ plotkey2017n<-plotkey2017%>%#plotkey for 2017 only off mound
 plotkey2017p<-plotkey2017%>% #plot key for 2017 only on mound
   filter(precinct=="P")
 
-plotspec2017<-plotspec%>%
-  mutate(year=substr(rownames(plotspec), 11, 14))%>%
+plotspec2017<-plotspec
+plotspec2017<-rownames_to_column(plotspec2017)
+plotspec2017<-plotspec2017%>%
+  mutate(year=substr(plotspec2017$rowname, 11, 14))%>%
   filter(year==2017)%>%
   select(-year)
+
+plotspec2017p<-subset(plotspec2017, plotspec2017$rowname%in%plotkey2017p$quadyr)
+plotspec2017n<-subset(plotspec2017, plotspec2017$rowname%in%plotkey2017n$quadyr)
+
+plotspec2017<-column_to_rownames(plotspec2017)
+rownames(plotspec2017p)<-plotspec2017p$rowname
+plotspec2017p<-select(plotspec2017p, -rowname)
+rownames(plotspec2017n)<-plotspec2017n$rowname
+plotspec2017n<-select(plotspec2017n, -rowname)
 
 ### Incorrect (no strata) - all years
 adonis(plotspec ~ precinct*grazetrt, data=plotkey2, perm=1e3)
 
-#Df SumsOfSqs MeanSqs F.Model      R2   Pr(>F)    
-#precinct            1     1.810 1.80995  6.3466 0.00909 0.000999 ***
-#  grazetrt            1     1.960 1.95993  6.8725 0.00984 0.000999 ***
-#  precinct:grazetrt   1     0.339 0.33948  1.1904 0.00170 0.294705    
-#Residuals         684   195.065 0.28518         0.97937             
-#Total             687   199.175                 1.00000             
-#---
-#  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+### Incorrect (no strata - 2017 - interaction, off mound, on mound)
+adonis(plotspec2017 ~ precinct*grazetrt, data=plotkey2017, perm=1e3) # grazing and precinct significant, but not interaction
 
-# just 2017
-adonis(plotspec2017 ~ precinct*grazetrt, data=plotkey2017, perm=1e3)
+adonis(plotspec2017n ~ grazetrt, data=plotkey2017n, perm=1e3) # off mound w/wo grazing=significant diff
+
+adonis(plotspec2017p ~ grazetrt, data=plotkey2017p, perm=1e3) # on mound w/wo graizng not significant diff
+
 
 ### Example of use with strata, for nested (e.g., block) designs.
 
@@ -515,11 +461,6 @@ dotplot(total ~ NO3, dat, jitter.x=TRUE, groups=field,
 Y <- data.frame(Agropyron, Schizachyrium)
 mod <- metaMDS(Y)
 plot(mod)
-### Hulls show treatment
-ordihull(mod, group=dat$NO3, show="0")
-ordihull(mod, group=dat$NO3, show="10", col=3)
-### Spider shows fields
-ordispider(mod, group=dat$field, lty=3, col="red")
 
 ### Correct hypothesis test (with strata)
 adonis(Y ~ NO3, data=dat, strata=dat$field, perm=1e3)
