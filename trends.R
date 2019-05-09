@@ -149,6 +149,12 @@ library(nlme)
 ## NOT WORKING
 mm<-lme(april~precip*grazetrt*precinct, random=~1|block, data=vegtog_clim, na.action = na.omit)
 summary(mm)
+
+vegtog_clim$alltrt <- as.factor(paste(vegtog_clim$grazetrt, vegtog_clim$precinct, sep = "_"))
+mm<-lme(april~precip*alltrt, random=~1|block, data=vegtog_clim, na.action = na.omit)
+summary(mm)
+
+ggplot(vegtog_clim, aes(x=precip, y=april, color = interaction(grazetrt, precinct))) + geom_point() + geom_smooth(se=F, method = "lm")
 ###################################
 # Part 4: FUNCTIONAL GROUP TRENDS #
 ###################################
@@ -235,6 +241,10 @@ func.biomass<-vegtog%>%
 ggplot(data=func.biomass, aes(x=log(meancount), y=april))+
   geom_point(aes(color=interaction(grazetrt, precinct)))+
   geom_smooth(method=lm)
+
+ggplot(data=func.biomass, aes(x=log(meancount), y=april))+
+  geom_point(aes(color=interaction(grazetrt, precinct)))+
+  geom_smooth(aes(color=interaction(grazetrt, precinct)), method=lm, se = F)
 
 ##relationship of ig to biomass
 aggFT<-funcTrend%>%
