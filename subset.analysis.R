@@ -227,7 +227,7 @@ summary(schara.2017.anova)
 TukeyHSD(schara.2017.anova) #nothing
 
 
-################################################### Nothin much, look at with key native too. 
+################################################### Nothin much, look at with key native too. NOT MUCH NATIVE GRASS AT ALL
 
 
 
@@ -294,16 +294,18 @@ ggplot(subset(vegtog, (year>2013)&(code=="hormur"|code=="schara"|code=="bromad")
 ## II. Community NMDS Ordinations 2014-2017 ##
 ##############################################
 # note: both NMDS had to be run with dimensions k=3 to find solutions.
+# multivariate view of communities - not worried about who is who
 
 ### All Species
 plotspec <- select(vegtog, year, quadrat, code, count)%>%
-  group_by(quadrat, code, year) %>%
+  mutate(quadyr=paste(quadrat, year, sep = "_"))%>%
+  group_by(quadyr, code) %>%
   summarize(meancount=mean(count))
 plotspec <-spread(plotspec, code, meancount, fill=0)%>%
   as.data.frame()
-plotspec<- select(plotspec, -nohit, -moss, -24, -8)
-rownames(plotspec) <-paste(plotspec$quadrat, plotspec$year, sep = "_")
-plotspec <- select(plotspec, -quadrat, -year)
+plotspec<- select(plotspec, -7, -29, -23, -30)
+rownames(plotspec) <-plotspec$quadyr
+plotspec <- select(plotspec, -quadyr)
 
 t<-as.tibble(rowSums(plotspec))
 t<-rownames_to_column(t)
@@ -326,12 +328,17 @@ data.scores$ID <- row.names(data.scores)
 data.scores <- as_tibble(data.scores) %>%
   separate(ID, c("quadrat", "quadrat2", "year"), by="=") %>%
   mutate(quadrat = paste(quadrat, quadrat2, sep = "-")) %>%
-  select(-quadrat2)
+  select(-quadrat2)%>%
+  mutate(quadyr=paste(quadrat, year, sep="_"))
 
 plotkey <- vegtog %>%
-  select(quadrat, precinct, grazetrt)%>%
-  group_by(quadrat, precinct, grazetrt)%>%
+  select(quadrat, precinct, grazetrt, year)%>%
+  mutate(quadyr=paste(quadrat, year, sep = "_"))%>%
+  group_by(quadyr, precinct, grazetrt)%>%
   summarize()
+plotkey<-subset(plotkey, (plotkey$quadyr%in%rownames(plotspec)))
+#plotspec<-subset(plotspec, rownames(plotspec)%in%plotkey$quadyr)
+
 data.scores <- left_join(data.scores, plotkey)%>%
   mutate(trt=paste(grazetrt, precinct, sep="_"))
 
@@ -340,9 +347,11 @@ species.scores <- as.data.frame(scores(plotspecNMDS, display=c("species")))
 species.scores$species <- row.names(species.scores)
 species.scores <- as_tibble(species.scores)
 
+
+##### NMDS VISUALIZATOIN #######
 ggplot() +
   geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
-  geom_jitter(data=subset(data.scores, year>2013),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
+  geom_jitter(data=subset(data.scores, year==2014|year==2017),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
    # add the species labels
   #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
   #  scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
@@ -354,45 +363,46 @@ ggplot() +
 
 
 ### Functional Groups
-plotfunc <- select(vegtog, year, quadrat, code, lifecycle, growthhabit, native, count)%>% 
-  filter(code!="nohit"&code!="bare") %>%
-  mutate(func=paste(lifecycle, growthhabit, native, sep="_"))%>%
-  group_by(quadrat, func, year) %>%
-  summarize(meancount=mean(count))
-plotfunc <-spread(plotfunc, func, meancount, fill=0)%>%
-  as.data.frame()%>%
-  select(-NA_NA_NA, -perennial_grass_n) #only one perennial grass ever, run without column
-rownames(plotfunc) <-paste(plotfunc$quadrat, plotfunc$year, sep = "_")
-plotfunc <- select(plotfunc, -quadrat, -year)
-plotfuncNMDS <- metaMDS(plotfunc, scale = T, k=3)
-plot(plotfuncNMDS)
+#plotfunc <- select(vegtog, year, quadrat, code, lifecycle, growthhabit, native, count)%>% 
+#  filter(code!="nohit"&code!="bare") %>%
+#  mutate(func=paste(lifecycle, growthhabit, native, sep="_"))%>%
+#  group_by(quadrat, func, year) %>%
+#  summarize(meancount=mean(count))
+#plotfunc <-spread(plotfunc, func, meancount, fill=0)%>%
+#  as.data.frame()%>%
+#  select(-NA_NA_NA, -perennial_grass_n) #only one perennial grass ever, run without column
+##rownames(plotfunc) <-paste(plotfunc$quadrat, plotfunc$year, sep = "_")
+#plotfunc <- select(plotfunc, -quadrat, -year)
+#plotfuncNMDS <- metaMDS(plotfunc, scale = T, k=3)
+#plot(plotfuncNMDS)
 
-data.scores <- as.data.frame(scores(plotfuncNMDS, display=c("sites")))
-data.scores$ID <- row.names(data.scores)
-data.scores <- as_tibble(data.scores) %>%
-  separate(ID, c("quadrat", "quadrat2", "year"), by="=") %>%
-  mutate(quadrat = paste(quadrat, quadrat2, sep = "-")) %>%
-  select(-quadrat2)
+#data.scores <- as.data.frame(scores(plotfuncNMDS, display=c("sites")))
+#data.scores$ID <- row.names(data.scores)
+#data.scores <- as_tibble(data.scores) %>%
+#  separate(ID, c("quadrat", "quadrat2", "year"), by="=") %>%
+#  mutate(quadrat = paste(quadrat, quadrat2, sep = "-")) %>%
+#  select(-quadrat2)
 
-plotkey <- vegtog %>%
-  select(quadrat, precinct, grazetrt)
-data.scores <- right_join(plotkey, data.scores)
+#plotkey <- vegtog %>%
+#  select(quadrat, precinct, grazetrt)
+#data.scores <- right_join(plotkey, data.scores)
 
 # Extract and format species scores
-species.scores <- as.data.frame(scores(plotfuncNMDS, display=c("species")))
-species.scores$species <- row.names(species.scores)
-species.scores <- as_tibble(species.scores)
+#species.scores <- as.data.frame(scores(plotfuncNMDS, display=c("species")))
+#species.scores$species <- row.names(species.scores)
+#species.scores <- as_tibble(species.scores)
 
 # NMDS PLOT by FN Group
-ggplot() +
-  geom_point(data=subset(data.scores, year>2013),aes(x=NMDS1,y=NMDS2,shape=interaction(precinct, grazetrt), color=interaction(precinct, grazetrt)),size=3) + # add the point markers
-  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) +  # add the species labels
+#ggplot() +
+#  geom_point(data=subset(data.scores, year>2013),aes(x=NMDS1,y=NMDS2,shape=interaction(precinct, grazetrt), color=interaction(precinct, grazetrt)),size=3) + # add the point markers
+#  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) +  # add the species labels
   #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
   #  scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
-  coord_equal() +
-  theme_bw() + facet_wrap(~year)
+#  coord_equal() +
+#  theme_bw() + facet_wrap(~year)
 
 
+### ADD ELLIPSES TO ORDINATIONS
 data(dune)
 # calculate distance for NMDS
 sol <- metaMDS(dune)
@@ -402,8 +412,6 @@ MyMeta = data.frame(
   amt = c("hi", "hi", "hi", "md", "lo", "hi", "hi", "lo", "md", "md", "lo", 
           "lo", "hi", "lo", "hi", "md", "md", "lo", "hi", "lo"),
   row.names = "sites")
-
-
 # same in ggplot2
 NMDS = data.frame(MDS1 = sol$points[,1], MDS2 = sol$points[,2],group=MyMeta$amt)
 ord<-ordiellipse(sol, MyMeta$amt, display = "sites", 
@@ -427,3 +435,97 @@ for(g in levels(NMDS$group)){
 ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = group)) +
   geom_path(data=df_ell, aes(x=NMDS1, y=NMDS2,colour=group), size=1, linetype=2)
 
+
+
+###  DISPERSION AND CENTROID STATS - multivairate view of communities
+      # multivariate difference: centroids and dispersion between treatments (quad level composition - no blocks)
+      # multivariate change: change in species comp from 2007/2014 to 2017
+      # PERMANOVA - statistical testing of centroid difference
+      # betadisper - dispersion using vegan/to verify my results
+
+
+multivariate_difference(subset(vegtog, year==2017&precinct=="N"&code!="nohit"), 
+                        species.var="code", 
+                        abundance.var="count",
+                        replicate.var="quadrat",
+                        treatment.var="grazetrt")
+multivariate_difference(subset(vegtog, year==2017&precinct=="P"&code!="nohit"), 
+                        species.var="code", 
+                        abundance.var="count",
+                        replicate.var="quadrat",
+                        treatment.var="grazetrt")
+multivariate_difference(subset(vegtog, year==2017&grazetrt=="grazed"&code!="nohit"), 
+                        species.var="code", 
+                        abundance.var="count",
+                        replicate.var="quadrat",
+                        treatment.var="precinct")
+multivariate_difference(subset(vegtog, year==2017&grazetrt=="ungrazed"&code!="nohit"), 
+                        species.var="code", 
+                        abundance.var="count",
+                        replicate.var="quadrat",
+                        treatment.var="precinct")
+
+
+# PERMANOVA
+
+plotkey2<-as.tibble(rownames(plotspec))%>%
+  mutate(quadrat=substr(value, 1,9))%>%
+  mutate(quadyr=value)%>%
+  select(-value)
+plotkey2<-left_join(plotkey2, plotkey)%>% # new plot key with shifting quadrats
+  mutate(year=substr(quadyr, 11, 14))
+plotkey2017<-plotkey2%>% #plotkey for only 2017
+  filter(year==2017)
+plotkey2017n<-plotkey2017%>%#plotkey for 2017 only off mound
+  filter(precinct=="N")
+plotkey2017p<-plotkey2017%>% #plot key for 2017 only on mound
+  filter(precinct=="P")
+
+plotspec2017<-plotspec%>%
+  mutate(year=substr(rownames(plotspec), 11, 14))%>%
+  filter(year==2017)%>%
+  select(-year)
+
+### Incorrect (no strata) - all years
+adonis(plotspec ~ precinct*grazetrt, data=plotkey2, perm=1e3)
+
+#Df SumsOfSqs MeanSqs F.Model      R2   Pr(>F)    
+#precinct            1     1.810 1.80995  6.3466 0.00909 0.000999 ***
+#  grazetrt            1     1.960 1.95993  6.8725 0.00984 0.000999 ***
+#  precinct:grazetrt   1     0.339 0.33948  1.1904 0.00170 0.294705    
+#Residuals         684   195.065 0.28518         0.97937             
+#Total             687   199.175                 1.00000             
+#---
+#  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+# just 2017
+adonis(plotspec2017 ~ precinct*grazetrt, data=plotkey2017, perm=1e3)
+
+### Example of use with strata, for nested (e.g., block) designs.
+
+dat <- expand.grid(rep=gl(2,1), NO3=factor(c(0,10)),field=gl(3,1) )
+dat
+Agropyron <- with(dat, as.numeric(field) + as.numeric(NO3)+2) +rnorm(12)/2
+Schizachyrium <- with(dat, as.numeric(field) - as.numeric(NO3)+2) +rnorm(12)/2
+total <- Agropyron + Schizachyrium
+library(lattice)
+dotplot(total ~ NO3, dat, jitter.x=TRUE, groups=field,
+        type=c('p','a'), xlab="NO3", auto.key=list(columns=3, lines=TRUE) )
+
+Y <- data.frame(Agropyron, Schizachyrium)
+mod <- metaMDS(Y)
+plot(mod)
+### Hulls show treatment
+ordihull(mod, group=dat$NO3, show="0")
+ordihull(mod, group=dat$NO3, show="10", col=3)
+### Spider shows fields
+ordispider(mod, group=dat$field, lty=3, col="red")
+
+### Correct hypothesis test (with strata)
+adonis(Y ~ NO3, data=dat, strata=dat$field, perm=1e3)
+
+### Incorrect (no strata)
+adonis(Y ~ NO3, data=dat, perm=1e3)
+
+########################
+# RACs/abundance clocks- actually communities are changing, who is leading the cause
