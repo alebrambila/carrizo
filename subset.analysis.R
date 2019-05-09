@@ -237,21 +237,21 @@ TukeyHSD(schara.2017.anova) #nothing
 # multivariate view of communities - not worried about who is who
 
 ### All Species
-plotspec <- select(vegtog, year, quadrat, code, count)%>%
+plotspec <- dplyr::select(vegtog, year, quadrat, code, count)%>%
   mutate(quadyr=paste(quadrat, year, sep = "_"))%>%
   group_by(quadyr, code) %>%
   summarize(meancount=mean(count))
 plotspec <-spread(plotspec, code, meancount, fill=0)%>%
   as.data.frame()
-plotspec<- select(plotspec, -7, -29, -23, -30)
+plotspec<- dplyr::select(plotspec, -7, -29, -23, -30)
 rownames(plotspec) <-plotspec$quadyr
-plotspec <- select(plotspec, -quadyr)
+plotspec <- dplyr::select(plotspec, -quadyr)
 
 t<-as.tibble(rowSums(plotspec))
 t<-rownames_to_column(t)
 t<-t%>%
   filter(value==0)%>%
-  select(1)
+  dplyr::select(1)
 t<-as.list(t[,1])
 t<-t$rowname
 
@@ -268,11 +268,11 @@ data.scores$ID <- row.names(data.scores)
 data.scores <- as_tibble(data.scores) %>%
   separate(ID, c("quadrat", "quadrat2", "year"), by="=") %>%
   mutate(quadrat = paste(quadrat, quadrat2, sep = "-")) %>%
-  select(-quadrat2)%>%
+  dplyr::select(-quadrat2)%>%
   mutate(quadyr=paste(quadrat, year, sep="_"))
 
 plotkey <- vegtog %>%
-  select(quadrat, precinct, grazetrt, year)%>%
+  dplyr::select(quadrat, precinct, grazetrt, year)%>%
   mutate(quadyr=paste(quadrat, year, sep = "_"))%>%
   group_by(quadyr, precinct, grazetrt)%>%
   summarize()
