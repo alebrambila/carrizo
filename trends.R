@@ -105,7 +105,7 @@ gammaBiomass<- vegtog%>% # measured at the plot level, not quadrat
 ggplot()+ 
   geom_bar(data=climate, aes(x=as.integer(rainyear), y=precip/10), stat="identity", fill='lightgrey')+
   geom_line(data=gammaBiomass, aes(x=year, y=mean, color=interaction(grazetrt, precinct))) +
- geom_errorbar(data=gammaBiomass, aes(x=year, ymin=mean-se, ymax=mean+se)) +
+ geom_errorbar(data=gammaBiomass, aes(x=year, ymin=mean-se, ymax=mean+se, color=interaction(grazetrt, precinct))) +
   ylab("Biomass/Plot") +
   xlab("Year") +
   #annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=0, ymax=30, alpha = .2)+
@@ -154,7 +154,10 @@ vegtog_clim$alltrt <- as.factor(paste(vegtog_clim$grazetrt, vegtog_clim$precinct
 mm<-lme(april~precip*alltrt, random=~1|block, data=vegtog_clim, na.action = na.omit)
 summary(mm)
 
-ggplot(vegtog_clim, aes(x=precip, y=april, color = interaction(grazetrt, precinct))) + geom_point() + geom_smooth(se=F, method = "lm")
+ggplot(vegtog_clim, aes(x=precip, y=april, color = interaction(grazetrt, precinct))) + 
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  geom_point() + geom_smooth(se=F, method = "lm")+
+  ylab("Peak Biomass")+xlab("Precipitation in mm")
 ###################################
 # Part 4: FUNCTIONAL GROUP TRENDS #
 ###################################
@@ -190,10 +193,10 @@ ggplot(vegtog_clim, aes(x=precip, y=april, color = interaction(grazetrt, precinc
 
 # Invasive Grasses Trend
 funcTrend<-vegtog%>%
-  group_by(year, quadrat, site, native, growthhabit, precinct, grazetrt, april)%>%
+  group_by(year, quadrat, block, site, native, growthhabit, precinct, grazetrt, april)%>%
   summarize(count=sum(count)) %>%
   filter(!is.na(native))%>%
-  mutate(func=paste(growthhabit, native, sep="_"))
+  mutate(func=factor(paste(growthhabit, native, sep="_")))
 funcTrend<-left_join(funcTrend, totalStems)
 funcTrend[is.na(funcTrend)] <- 0  
 funcTrendsum<-funcTrend%>%
@@ -204,7 +207,7 @@ funcTrendsum<-funcTrend%>%
 ggplot()+ 
   geom_bar(data=climate, aes(x=as.integer(rainyear), y=precip/6), stat="identity", fill='lightgrey')+
   geom_line(data=subset(funcTrendsum, func=="grass_i"), aes(x=year, y=mean/.81, color=interaction(grazetrt, precinct))) +
-  geom_errorbar(data=subset(funcTrendsum, func=="grass_i"), aes(x=year, ymin=mean/.81-se, ymax=mean/.81+se)) +
+  geom_errorbar(data=subset(funcTrendsum, func=="grass_i"), aes(x=year, ymin=mean/.81-se, ymax=mean/.81+se, color=interaction(grazetrt, precinct))) +
   ylab("Percent cover introduced grasses") +
   xlab("Year") +
  # annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=0, ymax=1, alpha = .2)+
@@ -214,17 +217,14 @@ scale_y_continuous(sec.axis = sec_axis(~.*6, name = "Precipitation in mm"))
 
 
 ## run a two way ANOVA: grazing and mound in 2014, grazing and mound in 2017.  are these differences significant?
-anovafunc<-left_join(func.agg, climate, by = c("year" = "rainyear"))
+anovafunc<-left_join(funcTrend, climate, by = c("year" = "rainyear"))%>%
+  mutate(alltrt=(paste(grazetrt, precinct, sep="_")))%>%
+  ungroup()
+anovafunc<-mutate(anovafunc, alltrt=factor(alltrt))
 
-ig.2017.anova <- aov(count~factor(grazetrt)*factor(precinct)+factor(site), subset(anovafunc, year==2017&func=="grass_i"))
-summary(ig.2017.anova)
-TukeyHSD(ig.2017.anova)
-plot(TukeyHSD(ig.2017.anova)) 
-
-ig.2014.anova <- aov(count~factor(grazetrt)*factor(precinct)+factor(site), subset(anovafunc, year==2014&func=="grass_i"))
-summary(ig.2014.anova)
-TukeyHSD(ig.2014.anova)
-plot(TukeyHSD(ig.2014.anova))
+l <- lme(count~alltrt, random =~1|factor(block),  subset(anovafunc, year==2017&func=="grass_i"), na.action = na.omit)
+anova(l)
+summary(glht(l, linfct=mcp(alltrt="Tukey")))
 
 ## test for relationship of ig to precipitation
 summary(lm(count~precip, subset(anovafunc, func=="grass_i")))    #2% r2
@@ -244,7 +244,9 @@ ggplot(data=func.biomass, aes(x=log(meancount), y=april))+
 
 ggplot(data=func.biomass, aes(x=log(meancount), y=april))+
   geom_point(aes(color=interaction(grazetrt, precinct)))+
-  geom_smooth(aes(color=interaction(grazetrt, precinct)), method=lm, se = F)
+  geom_smooth(aes(color=interaction(grazetrt, precinct)), method=lm, se = F)+
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  xlab("log(% Introduced Grasses)")+ylab("Peak Biomass")
 
 ##relationship of ig to biomass
 aggFT<-funcTrend%>%
@@ -253,6 +255,14 @@ aggFT<-funcTrend%>%
 
 summary(lm(april~count, subset(aggFT, func=="grass_i")))    #19% r2, basically the same as precip
 
-#mixed model with 
-lme(count~as.factor(precip)*as.factor(grazetrt)*as.factor(precinct)+1|as.factor(site)+1|as.factor(year), data=subset(aggFT, func=="grass_i"), na.action = na.omit)
+mm<-lme(april~count*alltrt, random=~1|block, data=subset(anovafunc, func=="grass_i"), na.action = na.omit)
+summary(mm)
 
+
+
+mm<-lme(count~precip*alltrt, random=~1|block, data=vegtog_clim, na.action = na.omit)
+summary(mm)
+ggplot(data=subset(anovafunc, func=="grass_i"), aes(x=precip, y=count, color = interaction(grazetrt, precinct))) + 
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  geom_point() + geom_smooth(se=F, method = "lm")+
+  ylab("% Cover introduced grasses")+xlab("Precipitation in mm")
