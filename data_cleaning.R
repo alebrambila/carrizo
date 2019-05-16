@@ -10,31 +10,30 @@
 ## Run this script before running any other script in the project.  
 ## They all require this script, but not each other.   
 
+
 library(tidyverse)
-library(vegan)
-library(agricolae)
-library(ggpubr)
+
 
 ### LOAD THE DATA ###
 vegdat <- read.csv("veg plot data all.csv") # Collected vegetation data from pin drops: 81 drops/quadrat
 names(vegdat) = c("date", "quadrat", "observer", "site", "block", "sitetype", 
                   "newquadrat", "code", "precinct", "count", "precinctcurrent",
                   "year", "cover", "comments", "t1", "t2", "t3", "t4", "t5", "t6")
-vegdat<-select(vegdat, -starts_with("t"))%>%
+vegdat<-dplyr::select(vegdat, -starts_with("t"))%>%
   filter(sitetype=="CR"|sitetype=="EP")
 
 sitekey <- read_csv("site type key.csv")    # treatment for each site type in vegdat
 names(sitekey) = c("sitetype", "grazetrt", "pasturetrt", "rodenttrt", "exclosure", "altsitetype")
 
 precip <- read_csv("veg plot treatment key.csv")%>%
-  select(c(1,2, 5))
+  dplyr::select(c(1,2, 5))
 names(precip) =c("site", "sitetype", "preciptrt")  
 precip<-mutate(precip, preciptrt=tolower(preciptrt))%>%
   filter(sitetype=="CR"|sitetype=="EP")%>%
-  select(-sitetype)
+  dplyr::select(-sitetype)
 
 vegprecip<-read_csv("vegplot_withprecip.csv")%>%
-  select(c(4, 6, 9, 16))
+  dplyr::select(c(4, 6, 9, 16))
 names(vegprecip)=c("site", "sitetype", "preciptrt", "year")
 vegprecip<-vegprecip%>%
   filter(sitetype=="CR"|sitetype=="EP")%>%
@@ -54,13 +53,13 @@ cowpies <- read_csv("cowpie counts all years.csv")            # cowpies per plot
 sitekey<-(left_join(vegprecip, sitekey))
 sitekey<-sitekey%>%
   filter(sitetype=="CR"|sitetype=="EP")%>%
-  select(year, sitetype, site, preciptrt, grazetrt)
+  dplyr::select(year, sitetype, site, preciptrt, grazetrt)
 
 vegtog <- left_join(vegdat, sitekey)%>%
-  select(-date, -observer, -comments) %>%
+  dplyr::select(-date, -observer, -comments) %>%
   mutate(code = tolower(code)) %>%
   mutate(code=ifelse(code %in% c("bare", "litter", "fresh dirt", "bphole", 
-                                 "hole","GOPHER", "MOSS", "ANT", "cowpie", ""), 
+                                 "hole","GOPHER", "MOSS", "ANT", "cowpie", "", "bare ", "litter ", "moss"), 
                      "nohit", code))%>%
   filter (count !=0, !is.na(count)) %>% # remove GKR exclosure plots and 0/NA 
   mutate(precinct=as.character(precinct)) %>%
@@ -71,7 +70,7 @@ vegtog <- left_join(vegdat, sitekey)%>%
 ### JOIN VEGTOG AND PLANTKEY ###
 #Standardize column names
 plantkey<-left_join(plantkey, funckey)%>%
-  select(c(1, 4, 5, 27, 33, 34))
+  dplyr::select(c(1, 4, 5, 27, 33, 34))
 names(plantkey) = c("family", "code", "binomial", "native", "lifecycle", "growthhabit")
 vegtog <- left_join(vegtog, plantkey)
 
@@ -80,7 +79,7 @@ vegtog <- left_join(vegtog, plantkey)
 ### JOIN VEGTOG AND BIOMASS ###
 #clean up and rename biomass columns
 biomass <- biomass %>%
-  select("year", "Site type", "Block", "New Plot ID", "net weight", "season")
+  dplyr::select("year", "Site type", "Block", "New Plot ID", "net weight", "season")
 names(biomass) = c("year", "sitetype", "block", "quadrat", "netwt", "wtmonth")
 biomass <- biomass %>%
   mutate(quadrat=as.factor(quadrat))%>%
@@ -89,7 +88,7 @@ biomass <- biomass %>%
   mutate(wtmonth=ifelse(wtmonth=="spring", "april", wtmonth))  %>%
   filter(wtmonth!="june") %>% ## We lose All the June measurements because their quad #s are 1-8 not "NO215" etc.
   spread(wtmonth, netwt)%>%
-  select("year", "quadrat", "april", "october")
+  dplyr::select("year", "quadrat", "april", "october")
 
 #join april and october biomass columns to vegtog
 vegtog <- left_join(vegtog, biomass)
@@ -99,11 +98,11 @@ names(vegtog)
 ### JOIN VEGTOG AND COWPIES ###
 #clean up and rename cowpies (plot/block level)
 cowpies <-cowpies %>%
-  select(year, "alt site type", block, cowpies)
+  dplyr::select(year, "alt site type", block, cowpies)
 names(cowpies)<-c("year", "type","block", "cowpies")
 cowpies <-cowpies %>%
   mutate(site = paste(type, "R", block, sep=""))%>%
-  select(-type, -block)
+  dplyr::select(-type, -block)
 ##sum cowpies by site and year
 cowpies <- aggregate(cowpies$cowpies, by=list(cowpies$site, cowpies$year),  FUN=sum)
 names(cowpies) <- c("site", "year", "cowpies")
@@ -112,7 +111,7 @@ vegtog <- left_join(vegtog, cowpies)
 
 #remove columns
 vegtog<- vegtog %>%
-  select(-sitetype,  -newquadrat)%>%
+  dplyr::select(-sitetype,  -newquadrat)%>%
   filter(!is.na(grazetrt))
 
 
@@ -176,8 +175,11 @@ ggplot(test, aes(x=year, y=count)) +geom_line(aes(color=precinct)) +facet_wrap(~
 
 
 ### ONLY HITS ON PLANTS
-vegtog_vegonly<-vegtog%>%
-  filter(code!="nohit")
+vegtog<-vegtog%>%
+  mutate(code=ifelse(code=="vulmic ", "vulmic", ifelse(code=="lepnit ", "lepnit", ifelse(code=="phlgra ", "phlgra", ifelse(code=="trigra ", "trigra", code)))))
+
+
+## have to add up same species same place
 
   
 
@@ -190,7 +192,7 @@ vegtog_vegonly<-vegtog%>%
 ###  PRECIP                                       ###
 #####################################################
 climate<-read_csv("CAZC1climate.csv", skip=11)%>%
-  select(-1)%>%
+  dplyr::select(-1)%>%
   separate(X2, into=c("year", "month", "day"), sep="-")%>%
   separate(day, into=c("day", "time"), sep=" ")%>%
   group_by(year, month, day)%>%
@@ -226,35 +228,33 @@ climate<-climate%>%
   mutate(precip=as.numeric(precip))%>%
   group_by(rainyear, preciplegacy1, preciplegacy2)%>%
   summarize(precip=sum(precip), MAT=mean(mmt))%>%
-  filter(rainyear!=2007, rainyear!=2018)
+  filter(rainyear!=2007, rainyear!=2018)%>%
+  mutate(sprecip = (precip-191.68) / 117.91)%>%
+  mutate(extremeyear=ifelse(sprecip>=1, "wet", ifelse(sprecip<=-1, "dry", "normal")))%>%
+  mutate(wetordry=ifelse(sprecip>=.5, "wet", ifelse(sprecip<=-.5, "dry", "normal")))
+climate$extremeyear<-as.factor(climate$extremeyear)
+climate$wetordry<-as.factor(climate$wetordry)
+
 
 precip<-ggplot(climate)+geom_bar(aes(x=as.factor(rainyear), y=precip), stat="identity")
 MAT<-ggplot(climate)+geom_line(aes(x=as.integer(rainyear), y=MAT))
 
 ggarrange(precip, MAT)
 
-
+climsum<-climate%>%
+  group_by(rainyear, extremeyear)%>%
+  summarize(meanprecip=mean(precip))
+climsum2<-climate%>%
+  group_by(rainyear, extremeyear)%>%
+  summarize(meanprecip=mean(precip))
 
 rainyear<-climate%>%
   mutate(year=rainyear)%>%
   ungroup()%>%
-  select(6:4)
+  dplyr::select(1, 8, 7, 6, 5, 4)
 
-PL1<-climate%>%
-  mutate(year=preciplegacy1)%>%
-  mutate(legacyOne=precip)%>%
-  ungroup()%>%
-  select(6:7)
-  
-PL2<-climate%>%
-  mutate(year=preciplegacy2)%>%
-  mutate(legacyTwo=precip)%>%
-  ungroup()%>%
-select(6:7)
 
-vegtog_clim<-left_join(vegtog, rainyear)
-vegtog_clim<-left_join(vegtog_clim, PL1)
-vegtog_clim<-left_join(vegtog_clim, PL2)
+
 
 
 ##################################################
@@ -283,12 +283,12 @@ vegsum<-vegtog%>%
   summarize()%>%
   filter((year==2014|year==2015|year==2016|year==2017)&(site=="EP2"|site=="EP3"|site=="EP4"))%>%
   ungroup()%>%
-  select(year, site, quadrat)%>%
+  dplyr::select(year, site, quadrat)%>%
   group_by(year, site)%>%
   mutate(n=n())%>%
   mutate(quadrat=substr(quadrat, 5, 9))%>%
   mutate(yrsite=paste(year, site, sep="_"))%>%
-  select(-n, year, site)%>%
+  dplyr::select(-n, year, site)%>%
   spread(quadrat, year)
 # EP2: new in 15=0210, 0402, 0507.  
   #end in 2015: 1213, 1402... remove from 2015       (11 to 8)
@@ -306,8 +306,8 @@ vegsum<-vegtog%>%
   summarize()%>%
   filter((year==2014|year==2015|year==2016|year==2017)&(site=="EP2"|site=="EP3"|site=="EP4"))%>%
   ungroup()%>%
-  select(year, site, quadrat)%>%
-  select(1, 3)%>%
+  dplyr::select(year, site, quadrat)%>%
+  dplyr::select(1, 3)%>%
   mutate(new=ifelse((year==2015)&(quadrat=="EP2-N1213"|quadrat=="EP2-P1402"|quadrat=="EP2-P0805"|
                                     quadrat=="EP3-P1015"|quadrat=="EP3-P1208"|quadrat=="EP3-N1506"|
                                     quadrat=="EP4-N1719"|quadrat=="EP4-N0816"|quadrat=="EP4-P0311"|
@@ -330,19 +330,21 @@ ggplot(quadCount2, aes(x=year, y=totquadcount, color=interaction(grazetrt, preci
 vegtog<-left_join(vegtog, vegsum)%>%
   mutate(new=ifelse(is.na(new), "good", new))%>%
   filter(new!="bad")%>%
-  select(-new) #vegtog lost about 150 observations.  sitting at EXACTLY 5000 now, cool! 
+  dplyr::select(-new) #vegtog lost about 150 observations.  sitting at EXACTLY 5000 now, cool! 
 
 
-
+vegtog<-left_join(vegtog, rainyear, by=c("year"="rainyear"))
+vegtog_vegonly<-left_join(vegtog_vegonly, rainyear, by=c("year"="rainyear"))
 
 # Clean up environment.
-rm(PL1, PL2, rainyear, precip, MAT)
+rm(PL1, PL2, rainyear, precip, MAT, climsum, climsum2)
 rm(cowpies, funckey, plantkey, sitekey, vegdat, biomass, current, precip, shifted, vegprecip, test)
 
 names(vegtog)
 str(vegtog)
 
 vegtog<-unique(vegtog)
+vegtog_vegonly<-unique(vegtog_vegonly)
 
 ##FN for Calculating SE
 calcSE<-function(x){
@@ -358,3 +360,9 @@ theme_set(theme_bw(base_size = 12) + theme(text = element_text(size = 14)) +
                   panel.border = element_rect(colour = "black"),
                   legend.title=element_blank()))
 
+library(vegan)
+library(agricolae)
+library(ggpubr)
+library(codyn)
+library(nlme)
+library(multcomp)

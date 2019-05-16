@@ -28,10 +28,9 @@ library(tidyverse)
 ### 1. Species Richness
 
 # Quadrat Level
-#alpha.rich <- vegtog %>%
-#  filter(code!="nohit") %>%
-#  group_by(year, grazetrt, quadrat, site, precinct) %>%
-#  summarize(richness=length(unique(code)))#
+alpha.rich <- vegtog_vegonly %>%
+  group_by(year, grazetrt, block, quadrat, site, precinct) %>%
+  summarize(richness=length(unique(code)))#
 
 #ggplot(subset(alpha.rich, year==2014|year==2017), 
 #       aes(x=interaction(grazetrt, precinct), 
@@ -69,13 +68,19 @@ library(tidyverse)
 
 #Quadrat level 
 #overall quad level shannon diversity
-alpha.shan <- vegtog %>%
-  filter(year==2014|year==2017)
+alpha.shan <- vegtog_vegonly
 alpha.shan <- left_join(alpha.shan, community_diversity(alpha.shan, time.var = "year", abundance.var="count", replicate.var="quadrat", metric = c("Shannon")))
 alpha.shan <- alpha.shan %>%
-  group_by(year, site, quadrat, precinct, grazetrt, Shannon) %>%
-  summarize() %>%
-  group_by()
+  group_by(year, site, block, quadrat, precinct, grazetrt, Shannon) %>%
+  summarize()%>%
+  mutate(alltrt=(paste(grazetrt, precinct, sep="_")))%>%
+  ungroup()
+alpha.shan<-left_join(alpha.shan, alpha.rich)
+alpha.shan<-mutate(alpha.shan, alltrt=factor(alltrt))
+alpha.shan<-left_join(alpha.shan, climate, by = c("year" = "rainyear"))%>%
+  filter(!is.na(precip))%>%
+  mutate(wet.trt=paste(alltrt, wetordry, sep=""))
+alpha.shan<-mutate(alpha.shan, wet.trt=factor(wet.trt))
 
 ggplot(subset(alpha.shan, year==2014|year==2017), 
        aes(x=interaction(grazetrt, precinct), 
@@ -84,6 +89,27 @@ ggplot(subset(alpha.shan, year==2014|year==2017),
   theme(axis.text.x=element_blank()) +
   geom_jitter(width=.1, color="black") +
   facet_wrap(~year) + 
+  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+                     values=c("pink", "brown", "lightblue", "darkblue")) +
+  xlab("Treatment") +
+  ggtitle("Quad-level Shannon Diversity")
+
+ggplot(subset(alpha.shan, !is.na(precip)&wetordry!="normal"), 
+       aes(x=interaction(grazetrt, precinct), 
+           y=Shannon, color=interaction(grazetrt, precinct))) + 
+  geom_boxplot() +
+  theme(axis.text.x=element_blank()) +
+  facet_wrap(~wetordry) + #wetordry
+  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+                     values=c("pink", "brown", "lightblue", "darkblue")) +
+  xlab("Treatment") +
+  ggtitle("Quad-level Shannon Diversity")
+
+ggplot(subset(alpha.shan), 
+       aes(x=interaction(grazetrt, precinct), 
+           y=Shannon, color=interaction(grazetrt, precinct))) + 
+  geom_boxplot() +
+  theme(axis.text.x=element_blank()) +
   scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
                      values=c("pink", "brown", "lightblue", "darkblue")) +
   xlab("Treatment") +
@@ -112,21 +138,34 @@ ggplot(subset(alpha.shan, year==2014|year==2017),
 #  ggtitle("Quad-level Native Shannon Diversity")
 
 ## SHANNON DIVERSITY STATS ##
-shan.2017.anova <- aov(Shannon~factor(grazetrt)*factor(precinct)+factor(site), subset(alpha.shan, year==2017))
-summary(shan.2017.anova)
-TukeyHSD(shan.2017.anova) #ungrazed p-n is significantly different, but grazed p-n is not. 
-plot(TukeyHSD(shan.2017.anova)) 
+l <- lme(Shannon~alltrt, random =~1|factor(block),  subset(alpha.shan, year==2014), na.action = na.omit)
+anova(l)
+summary(glht(l, linfct=mcp(alltrt="Tukey")))
 
-shan.2014.anova <- aov(Shannon~factor(grazetrt)*factor(precinct)+factor(site), subset(alpha.shan, year==2014))
-summary(shan.2014.anova) #grazetrt is a very significant main effect
-TukeyHSD(shan.2014.anova) #p and n no longer differentiate, everything else does
-plot(TukeyHSD(shan.2014.anova))
+l <- lme(Shannon~alltrt, random =~1|factor(block),  subset(alpha.shan, year==2017), na.action = na.omit)
+anova(l)
+summary(glht(l, linfct=mcp(alltrt="Tukey")))
+
+l <- lme(Shannon~wet.trt, random=~1|factor(block),  subset(alpha.shan), na.action = na.omit)
+anova(l)
+summary(glht(l, linfct=mcp(wet.trt="Tukey")))
 
 ### 3. Biomass
 biomass<-vegtog%>%
   filter(!is.na(april), !is.na(october))%>%
-  group_by(year, site, quadrat, site, precinct, grazetrt, april, october) %>%
-  summarize()
+  group_by(year, site, quadrat, site, precinct, grazetrt, april, block, october, wetordry) %>%
+  summarize()%>%
+  ungroup()%>%
+  mutate(alltrt=paste(grazetrt, precinct, sep=""))%>%
+  mutate(wet.trt=paste(alltrt, wetordry, sep=""))%>%
+  filter(!is.na(alltrt), !is.na(wetordry))
+
+biomass<-mutate(biomass, wet.trt=as.factor(wet.trt))
+biomass<-mutate(biomass, alltrt=as.factor(alltrt))
+
+l <- lme(april~wet.trt, random=~1|factor(block),  subset(biomass), na.action = na.omit)
+anova(l)
+summary(glht(l, linfct=mcp(wet.trt="Tukey")))
 
 ggplot(subset(biomass, year==2014|year==2017), 
        aes(x=interaction(grazetrt, precinct), 
@@ -158,10 +197,8 @@ func.agg<-vegtog%>%
   summarize(count=sum(count)) %>%
   filter(!is.na(native))%>%
   mutate(func=paste(growthhabit, native, sep="_"))
-func.agg<-left_join(func.agg, totalStems)
-func.agg<-func.agg%>%
-  mutate(prop=count/stems)
-  
+
+
 # Vis option 1
 ggplot(subset(funcTrend, (year==2014|year==2017)&(func=="grass_i")), 
        aes(x=interaction(grazetrt, precinct), 
@@ -237,13 +274,12 @@ TukeyHSD(schara.2017.anova) #nothing
 # multivariate view of communities - not worried about who is who
 
 ### All Species
-plotspec <- dplyr::select(vegtog, year, quadrat, code, count)%>%
+plotspec <- dplyr::select(vegtog_vegonly, year, quadrat, code, count)%>%
   mutate(quadyr=paste(quadrat, year, sep = "_"))%>%
   group_by(quadyr, code) %>%
   summarize(meancount=mean(count))
 plotspec <-spread(plotspec, code, meancount, fill=0)%>%
   as.data.frame()
-plotspec<- dplyr::select(plotspec, -7, -29, -23, -30)
 rownames(plotspec) <-plotspec$quadyr
 plotspec <- dplyr::select(plotspec, -quadyr)
 
@@ -258,10 +294,7 @@ t<-t$rowname
 plotspec<-subset(plotspec, !(rownames(plotspec)%in%t))
 
 plotspecNMDS <- metaMDS(plotspec, scale = T, k=4)
-plot(plotspecNMDS)
 
-# draw dispersion ellipses around data points
-ordiellipse(plotspecNMDS, data.scores$trt, kind = "sd", label = T)
 
 data.scores <- as.data.frame(scores(plotspecNMDS, display=c("sites")))
 data.scores$ID <- row.names(data.scores)
@@ -292,89 +325,13 @@ species.scores <- as_tibble(species.scores)
 ggplot() +
   geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
   geom_jitter(data=subset(data.scores, year==2014|year==2017),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
+  stat_ellipse(data=subset(data.scores, year==2014|year==2017), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
    # add the species labels
   #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
-  #  scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
+  scale_color_manual(labels=c("Grazed, Off-Precinct", "Grazed, On-Precinct","Ungrazed, Off-Precinct",  "Ungrazed, On-Precinct"), 
+                     values=c("pink", "lightblue", "brown",  "darkblue")) +
   coord_equal() +
-  scale_fill_manual(labels=c("Grazed, Off-Precinct", "Grazed, On-Precinct","Ungrazed, Off-Precinct",  "Ungrazed, On-Precinct"), 
-                    values=c("pink", "lightblue", "brown",  "darkblue"))+
   theme_bw() + facet_wrap(~year, scales="free")
-
-
-
-### Functional Groups
-#plotfunc <- select(vegtog, year, quadrat, code, lifecycle, growthhabit, native, count)%>% 
-#  filter(code!="nohit"&code!="bare") %>%
-#  mutate(func=paste(lifecycle, growthhabit, native, sep="_"))%>%
-#  group_by(quadrat, func, year) %>%
-#  summarize(meancount=mean(count))
-#plotfunc <-spread(plotfunc, func, meancount, fill=0)%>%
-#  as.data.frame()%>%
-#  select(-NA_NA_NA, -perennial_grass_n) #only one perennial grass ever, run without column
-##rownames(plotfunc) <-paste(plotfunc$quadrat, plotfunc$year, sep = "_")
-#plotfunc <- select(plotfunc, -quadrat, -year)
-#plotfuncNMDS <- metaMDS(plotfunc, scale = T, k=3)
-#plot(plotfuncNMDS)
-
-#data.scores <- as.data.frame(scores(plotfuncNMDS, display=c("sites")))
-#data.scores$ID <- row.names(data.scores)
-#data.scores <- as_tibble(data.scores) %>%
-#  separate(ID, c("quadrat", "quadrat2", "year"), by="=") %>%
-#  mutate(quadrat = paste(quadrat, quadrat2, sep = "-")) %>%
-#  select(-quadrat2)
-
-#plotkey <- vegtog %>%
-#  select(quadrat, precinct, grazetrt)
-#data.scores <- right_join(plotkey, data.scores)
-
-# Extract and format species scores
-#species.scores <- as.data.frame(scores(plotfuncNMDS, display=c("species")))
-#species.scores$species <- row.names(species.scores)
-#species.scores <- as_tibble(species.scores)
-
-# NMDS PLOT by FN Group
-#ggplot() +
-#  geom_point(data=subset(data.scores, year>2013),aes(x=NMDS1,y=NMDS2,shape=interaction(precinct, grazetrt), color=interaction(precinct, grazetrt)),size=3) + # add the point markers
-#  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) +  # add the species labels
-  #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
-  #  scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
-#  coord_equal() +
-#  theme_bw() + facet_wrap(~year)
-
-
-### ADD ELLIPSES TO ORDINATIONS
-data(dune)
-# calculate distance for NMDS
-sol <- metaMDS(dune)
-# Create meta data for grouping
-MyMeta = data.frame(
-  sites = c(2,13,4,16,6,1,8,5,17,15,10,11,9,18,3,20,14,19,12,7),
-  amt = c("hi", "hi", "hi", "md", "lo", "hi", "hi", "lo", "md", "md", "lo", 
-          "lo", "hi", "lo", "hi", "md", "md", "lo", "hi", "lo"),
-  row.names = "sites")
-# same in ggplot2
-NMDS = data.frame(MDS1 = sol$points[,1], MDS2 = sol$points[,2],group=MyMeta$amt)
-ord<-ordiellipse(sol, MyMeta$amt, display = "sites", 
-                 kind = "se", conf = 0.95, label = T)
-
-veganCovEllipse<-function (cov, center = c(0, 0), scale = 1, npoints = 100) 
-{
-  theta <- (0:npoints) * 2 * pi/npoints
-  Circle <- cbind(cos(theta), sin(theta))
-  t(center + scale * t(Circle %*% chol(cov)))
-}
-
-
-df_ell <- data.frame()
-for(g in levels(NMDS$group)){
-  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$group==g,],
-                                                   veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale)))
-                                ,group=g))
-}
-
-ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = group)) +
-  geom_path(data=df_ell, aes(x=NMDS1, y=NMDS2,colour=group), size=1, linetype=2)
-
 
 
 ###  DISPERSION AND CENTROID STATS - multivairate view of communities
@@ -383,23 +340,26 @@ ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = group)) +
       # PERMANOVA - statistical testing of centroid difference
       # betadisper - dispersion using vegan/to verify my results
 
+multivariate_difference(subset(vegtog_vegonly, precinct=="N"), 
+                        species.var="code", 
+                        abundance.var="count",
+                        replicate.var="quadrat",
+                        treatment.var="grazetrt",
+                        time.var="year")
 
-multivariate_difference(subset(vegtog, year==2017&precinct=="N"&code!="nohit"), 
+multivariate_difference(subset(vegtog_vegonly, year==2014&precinct=="P"), 
                         species.var="code", 
                         abundance.var="count",
                         replicate.var="quadrat",
                         treatment.var="grazetrt")
-multivariate_difference(subset(vegtog, year==2017&precinct=="P"&code!="nohit"), 
-                        species.var="code", 
-                        abundance.var="count",
-                        replicate.var="quadrat",
-                        treatment.var="grazetrt")
-multivariate_difference(subset(vegtog, year==2017&grazetrt=="grazed"&code!="nohit"), 
+
+multivariate_difference(subset(vegtog_vegonly, year==2014&grazetrt=="grazed"), 
                         species.var="code", 
                         abundance.var="count",
                         replicate.var="quadrat",
                         treatment.var="precinct")
-multivariate_difference(subset(vegtog, year==2017&grazetrt=="ungrazed"&code!="nohit"), 
+
+multivariate_difference(subset(vegtog_vegonly, year==2014&grazetrt=="ungrazed"), 
                         species.var="code", 
                         abundance.var="count",
                         replicate.var="quadrat",
@@ -410,9 +370,10 @@ multivariate_difference(subset(vegtog, year==2017&grazetrt=="ungrazed"&code!="no
 plotkey2<-as.tibble(rownames(plotspec))%>%
   mutate(quadrat=substr(value, 1,9))%>%
   mutate(quadyr=value)%>%
-  select(-value)
+  dplyr::select(-1)
 plotkey2<-left_join(plotkey2, plotkey)%>% # new plot key with shifting quadrats
-  mutate(year=substr(quadyr, 11, 14))
+  mutate(year=substr(quadyr, 11, 14))%>%
+  mutate(block=substr(quadrat, 3,3))
 plotkey2017<-plotkey2%>% #plotkey for only 2017
   filter(year==2017)
 plotkey2017n<-plotkey2017%>%#plotkey for 2017 only off mound
@@ -425,48 +386,121 @@ plotspec2017<-rownames_to_column(plotspec2017)
 plotspec2017<-plotspec2017%>%
   mutate(year=substr(plotspec2017$rowname, 11, 14))%>%
   filter(year==2017)%>%
-  select(-year)
+  dplyr::select(-year)
 
 plotspec2017p<-subset(plotspec2017, plotspec2017$rowname%in%plotkey2017p$quadyr)
 plotspec2017n<-subset(plotspec2017, plotspec2017$rowname%in%plotkey2017n$quadyr)
 
 plotspec2017<-column_to_rownames(plotspec2017)
 rownames(plotspec2017p)<-plotspec2017p$rowname
-plotspec2017p<-select(plotspec2017p, -rowname)
+plotspec2017p<-dplyr::select(plotspec2017p, -rowname)
 rownames(plotspec2017n)<-plotspec2017n$rowname
-plotspec2017n<-select(plotspec2017n, -rowname)
+plotspec2017n<-dplyr::select(plotspec2017n, -rowname)
 
 ### Incorrect (no strata) - all years
-adonis(plotspec ~ precinct*grazetrt, data=plotkey2, perm=1e3)
+adonis(plotspec ~ precinct*grazetrt, data=plotkey2, perm=1e3)  ### some issue with not equal length datasets
 
-### Incorrect (no strata - 2017 - interaction, off mound, on mound)
-adonis(plotspec2017 ~ precinct*grazetrt, data=plotkey2017, perm=1e3) # grazing and precinct significant, but not interaction
+### Correct hypothesis test with strata
 
-adonis(plotspec2017n ~ grazetrt, data=plotkey2017n, perm=1e3) # off mound w/wo grazing=significant diff
+#2017 main effects
+adonis(plotspec2017 ~ precinct*grazetrt, data=plotkey2017, strata=plotkey2017$block, perm=1e3) # grazing and precinct significant, but not interaction
+#Df SumsOfSqs MeanSqs F.Model      R2   Pr(>F)    
+#    precinct           1    1.8246 1.82464  8.8260 0.12010 0.000999 ***
+#    grazetrt           1    0.7296 0.72962  3.5293 0.04802 0.003996 ** 
+#    precinct:grazetrt  1    0.2344 0.23437  1.1337 0.01543 0.256743    
+#    Residuals         60   12.4040 0.20673         0.81645             
+#    Total             63   15.1927                 1.00000 
 
-adonis(plotspec2017p ~ grazetrt, data=plotkey2017p, perm=1e3) # on mound w/wo graizng not significant diff
+#off precinct test centroids by grazetrt
+adonis(plotspec2017n ~ grazetrt, data=plotkey2017n, strata=plotkey2017n$block, perm=1e3) # off mound w/wo grazing=significant diff
+#Df SumsOfSqs MeanSqs F.Model      R2   Pr(>F)   
+#   grazetrt   1    0.6139 0.61388  4.0682 0.13995 0.001998 **
+#   Residuals 25    3.7725 0.15090         0.86005            
+#   Total     26    4.3864                 1.00000
+
+#on precinct test centroids by grazetrt
+adonis(plotspec2017p ~ grazetrt, data=plotkey2017p, strata=plotkey2017p$block, perm=1e3) # on mound w/wo graizng not significant diff
+#          Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)  
+#   grazetrt   1    0.3501 0.35011  1.4197 0.03898 0.0959 .
+#   Residuals 35    8.6315 0.24661         0.96102         
+#   Total     36    8.9816                 1.00000   
 
 
-### Example of use with strata, for nested (e.g., block) designs.
+#Dispersion stats
+specdist2017<-vegdist(plotspec2017, method="bray")
+specdist2017n<-vegdist(plotspec2017n, method="bray")
+specdist2017p<-vegdist(plotspec2017p, method="bray")
 
-dat <- expand.grid(rep=gl(2,1), NO3=factor(c(0,10)),field=gl(3,1) )
-dat
-Agropyron <- with(dat, as.numeric(field) + as.numeric(NO3)+2) +rnorm(12)/2
-Schizachyrium <- with(dat, as.numeric(field) - as.numeric(NO3)+2) +rnorm(12)/2
-total <- Agropyron + Schizachyrium
-library(lattice)
-dotplot(total ~ NO3, dat, jitter.x=TRUE, groups=field,
-        type=c('p','a'), xlab="NO3", auto.key=list(columns=3, lines=TRUE) )
+#2017 disp tests
 
-Y <- data.frame(Agropyron, Schizachyrium)
-mod <- metaMDS(Y)
-plot(mod)
+#precinct main effect
+dispersion<-betadisper(specdist2017, group=plotkey2017$precinct)
+permutest(dispersion)
+#Groups     1 0.15346 0.153460 16.638    999  0.001 ***
 
-### Correct hypothesis test (with strata)
-adonis(Y ~ NO3, data=dat, strata=dat$field, perm=1e3)
+#Grazing main effect
+dispersion<-betadisper(specdist2017, group=plotkey2017$grazetrt)
+permutest(dispersion)
+#Groups     1 0.02125 0.021246 1.0835    999  0.295
 
-### Incorrect (no strata)
-adonis(Y ~ NO3, data=dat, perm=1e3)
+#interaction effect test
+dispersion<-betadisper(specdist2017, group=interaction(plotkey2017$precinct, plotkey2017$grazetrt))
+permutest(dispersion)
+# Groups     3 0.28245 0.094151 9.9103    999  0.001 ***
+
+#interaction on precinct - grazing
+dispersion<-betadisper(specdist2017p, group=plotkey2017p$grazetrt)
+permutest(dispersion)
+#Groups     1 0.008188 0.0081878 1.2487    999   0.27 NOOOOOOOO
+
+dispersion<-betadisper(specdist2017n, group=plotkey2017n$grazetrt)
+permutest(dispersion)
+#Groups     1 0.04796 0.047959 3.4495    999  0.066 . NOOOOO
+
+
 
 ########################
 # RACs/abundance clocks- actually communities are changing, who is leading the cause
+
+topspp<-vegtog_vegonly%>%
+  group_by(year, grazetrt, precinct, year, code)%>%
+  summarize(meancount=mean(count))%>%
+  filter(meancount>24.5) %>%
+  filter(code!="bare")%>%
+  filter(code!="litter")%>%
+  filter(code!="bare ")%>%
+  filter(code!="litter ")
+
+topspp2<-unique(topspp$code)
+
+vegtog.agg<-vegtog_vegonly%>%
+  group_by(year, grazetrt, precinct, year, code, precip)%>%
+  summarize(meancount=mean(count), secount=calcSE(count))%>%
+  filter(code%in%topspp2)
+
+ggplot(vegtog.agg, aes(x=year, y=meancount))+
+  geom_bar(aes(x=as.integer(year), y=precip/50), stat="identity", fill='lightgrey')+
+  geom_line(aes(group=code, color=code))+
+  geom_errorbar(aes(x=year, ymin=meancount-secount, ymax=meancount+secount, color=code), width=.1)+
+  facet_grid(grazetrt~precinct)+
+  scale_y_continuous(sec.axis = sec_axis(~.*50, name = "Annual Precipitation in mm"))+
+  ylab("Mean % Cover/Plot")+
+  scale_color_hue(direction=3)+
+  theme_classic()
+
+
+
+grazed_P_turnover<-turnover(vegtog_vegonly,
+                            time.var="year",
+                            species.var="code",
+                            abundance.var="count",
+                            replicate.var="quadrat")
+
+grazed_P_rankshift <- rank_shift(vegtog_vegonly,
+                            time.var = "year",
+                            species.var = "code",
+                            abundance.var = "count", 
+                            replicate.var = "quadrat")
+
+#Select the final time point from the returned time.var_pair
+KNZ_rankshift$year <- as.numeric(substr(KNZ_rankshift$year_pair, 6,9))
