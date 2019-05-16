@@ -31,16 +31,6 @@ clim
 ################################################
 #kind of irrelevant now, see richness in subset analysis
 
-# Total 
-annUniqueSp <- vegtog%>%  
-  group_by(year, grazetrt, precinct) %>%
-  summarize(richness=length(unique(code)))
-# Plot-Level
-gammaUniqueSp<- vegtog%>%
-  group_by(year, grazetrt, precinct, site) %>%
-  summarize(richness=length(unique(code))) %>%
-  group_by(year, grazetrt, precinct) %>%
-  summarize(meanrich=mean(richness), SE=calcSE(richness))
 # Quadrat-Level 
 alphaUniqueSp <- vegtog%>%
   group_by(year, grazetrt, precinct, quadrat) %>%
@@ -49,22 +39,7 @@ alphaUniqueSp <- vegtog%>%
   summarize(meanrich=mean(richness), SE=calcSE(richness))
 
 # Visualize diversity trends in one figure. 
-p1<-ggplot(annUniqueSp, aes(x=year, y=richness, color=grazetrt))+ 
-  geom_line() + 
-  facet_wrap(~precinct) +
-  ylab("Total Unique Species") +
-  xlab("") + facet_wrap(~precinct) +
-  annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=0, ymax=30, alpha = .2)+
-  annotate("text", x=2013.5, y=25, label="not grazed", alpha=.6)
-p2<-ggplot(gammaUniqueSp, aes(x=year, y=meanrich, color=grazetrt))+ 
-  geom_line() +
-  geom_errorbar(aes(x=year, ymin=meanrich-SE, ymax=meanrich+SE)) +
-  facet_wrap(~precinct) +
-  ylab("Unique Species/Plot") +
-  xlab("") + facet_wrap(~precinct) +
-  annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=0, ymax=15, alpha = .2)+
-  annotate("text", x=2013.5, y=13, label="not grazed", alpha=.6)
-p3<-ggplot(alphaUniqueSp, aes(x=year, y=meanrich, color=grazetrt))+ 
+ggplot(alphaUniqueSp, aes(x=year, y=meanrich, color=grazetrt))+ 
   geom_line() +
   geom_errorbar(aes(x=year, ymin=meanrich-SE, ymax=meanrich+SE)) +
   facet_wrap(~precinct) +
@@ -72,7 +47,6 @@ p3<-ggplot(alphaUniqueSp, aes(x=year, y=meanrich, color=grazetrt))+
   xlab("Year") + facet_wrap(~precinct) +
   annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=0, ymax=9, alpha = .2)+
   annotate("text", x=2013.5, y=8, label="not grazed", alpha=.6)
-ggarrange(p1, p2, p3, nrow=3, ncol=1, common.legend = TRUE)
 
 
 #######################
@@ -113,48 +87,35 @@ ggplot()+
   scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
   scale_y_continuous(sec.axis = sec_axis(~.*10, name = "Precipitation in mm"))
 
+vegtog_vegonly<-mutate(vegtog_vegonly, alltrt=factor(paste(grazetrt, precinct, sep="")))
+vegtog<-mutate(vegtog, alltrt=factor(paste(grazetrt, precinct, sep="")))
+
 ## run a two way ANOVA: grazing and mound in 2014, grazing and mound in 2017.  are these differences significant?
-vegtog.plot<-vegtog_clim%>%
+vegtog.plot<-vegtog%>%
   group_by(year, site, april, october, grazetrt, precinct, block, precip, quadrat)%>%
   summarize()%>%
   ungroup()%>%
   mutate(grazetrt=as.factor(grazetrt), precinct=as.factor(precinct), alltrt = as.factor(paste(grazetrt, precinct, sep = "_")))
 
-l <- lme(april~factor(grazetrt)*factor(precinct), random =~1|factor(block),  subset(vegtog.plot, year==2017), na.action = na.omit)
+l <- lme(april~alltrt, random =~1|factor(block),  subset(vegtog.plot, year==2014), na.action = na.omit)
 anova(l)
-
-
 l <- lme(april~alltrt, random =~1|factor(block),  subset(vegtog.plot, year==2017), na.action = na.omit)
 anova(l)
 
 summary(glht(l, linfct=mcp(alltrt="Tukey")))
 
 
-biomass.2017.anova <- aov(april~factor(grazetrt)*factor(precinct)+factor(block), subset(vegtog.plot, year==2017))
-summary(biomass.2017.anova)
-TukeyHSD(biomass.2017.anova)
-plot(TukeyHSD(biomass.2017.anova)) #only precinct is significant..., but i'm not taking advantage of paired design, or am i since i have block?
-
-biomass.2014.anova <- aov(april~factor(grazetrt)*factor(precinct)+factor(block), subset(vegtog.plot, year==2014))
-summary(biomass.2014.anova)
-TukeyHSD(biomass.2014.anova)
-plot(TukeyHSD(biomass.2014.anova))
-
 ## test for relationship of biomass to precipitation
-summary(lm(april~precip, vegtog_clim))    #20% r2
-summary(lm(april~legacyOne, vegtog_clim)) #.2% r2
+summary(lm(april~precip, vegtog))    #20% r2
+
 
 ## LME: continuous precip, factor grazed, factor mound
 library(nlme)
 ## NOT WORKING
-mm<-lme(april~precip*grazetrt*precinct, random=~1|block, data=vegtog_clim, na.action = na.omit)
+mm<-lme(april~precip*alltrt, random=~1|block, data=vegtog_vegonly, na.action = na.omit)
 summary(mm)
 
-vegtog_clim$alltrt <- as.factor(paste(vegtog_clim$grazetrt, vegtog_clim$precinct, sep = "_"))
-mm<-lme(april~precip*alltrt, random=~1|block, data=vegtog_clim, na.action = na.omit)
-summary(mm)
-
-ggplot(vegtog_clim, aes(x=precip, y=april, color = interaction(grazetrt, precinct))) + 
+ggplot(vegtog, aes(x=precip, y=april, color = interaction(grazetrt, precinct))) + 
   scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
   geom_point() + geom_smooth(se=F, method = "lm")+
   ylab("Peak Biomass")+xlab("Precipitation in mm")
@@ -192,16 +153,16 @@ ggplot(vegtog_clim, aes(x=precip, y=april, color = interaction(grazetrt, precinc
 #ggarrange(grass, clim)
 
 # Invasive Grasses Trend
-funcTrend<-vegtog%>%
+funcTrend<-vegtog_vegonly%>%
   group_by(year, quadrat, block, site, native, growthhabit, precinct, grazetrt, april)%>%
   summarize(count=sum(count)) %>%
   filter(!is.na(native))%>%
   mutate(func=factor(paste(growthhabit, native, sep="_")))
-funcTrend<-left_join(funcTrend, totalStems)
 funcTrend[is.na(funcTrend)] <- 0  
 funcTrendsum<-funcTrend%>%
   group_by(year, grazetrt, precinct, func)%>% #average all quads for the year
-  summarize(mean=mean(count), se=calcSE(count))
+  summarize(mean=mean(count), se=calcSE(count))%>%
+  ungroup()
 
 #Visualize
 ggplot()+ 
@@ -217,12 +178,13 @@ scale_y_continuous(sec.axis = sec_axis(~.*6, name = "Precipitation in mm"))
 
 
 ## run a two way ANOVA: grazing and mound in 2014, grazing and mound in 2017.  are these differences significant?
-anovafunc<-left_join(funcTrend, climate, by = c("year" = "rainyear"))%>%
-  mutate(alltrt=(paste(grazetrt, precinct, sep="_")))%>%
-  ungroup()
-anovafunc<-mutate(anovafunc, alltrt=factor(alltrt))
 
-l <- lme(count~alltrt, random =~1|factor(block),  subset(anovafunc, year==2017&func=="grass_i"), na.action = na.omit)
+funcTrend<-mutate(funcTrend, alltrt=(paste(grazetrt, precinct, sep="_")))%>%
+  ungroup()
+funcTrend<-mutate(funcTrend, alltrt=factor(alltrt))
+
+
+l <- lme(count~alltrt, random =~1|factor(block),  subset(funcTrend, year==2017&func=="grass_i"))
 anova(l)
 summary(glht(l, linfct=mcp(alltrt="Tukey")))
 
@@ -258,11 +220,7 @@ summary(lm(april~count, subset(aggFT, func=="grass_i")))    #19% r2, basically t
 mm<-lme(april~count*alltrt, random=~1|block, data=subset(anovafunc, func=="grass_i"), na.action = na.omit)
 summary(mm)
 
-
-
-mm<-lme(count~precip*alltrt, random=~1|block, data=vegtog_clim, na.action = na.omit)
-summary(mm)
-ggplot(data=subset(anovafunc, func=="grass_i"), aes(x=precip, y=count, color = interaction(grazetrt, precinct))) + 
+ggplot(data=subset(anovafunc, func=="grass_i"), aes(x=precip, y=log(count), color = interaction(grazetrt, precinct))) + 
   scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
   geom_point() + geom_smooth(se=F, method = "lm")+
-  ylab("% Cover introduced grasses")+xlab("Precipitation in mm")
+  ylab("log(% Cover introduced grasses)")+xlab("Precipitation in mm")
