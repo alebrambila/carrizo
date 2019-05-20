@@ -146,9 +146,9 @@ l <- lme(Shannon~alltrt, random =~1|factor(block),  subset(alpha.shan, year==201
 anova(l)
 summary(glht(l, linfct=mcp(alltrt="Tukey")))
 
-l <- lme(Shannon~wet.trt, random=~1|factor(block),  subset(alpha.shan), na.action = na.omit)
+l <- lme(Shannon~alltrt, random=~1|factor(block),  subset(alpha.shan), na.action = na.omit)
 anova(l)
-summary(glht(l, linfct=mcp(wet.trt="Tukey")))
+summary(glht(l, linfct=mcp(alltrt="Tukey")))
 
 ### 3. Biomass
 biomass<-vegtog%>%
@@ -296,6 +296,7 @@ plotspec<-subset(plotspec, !(rownames(plotspec)%in%t))
 plotspecNMDS <- metaMDS(plotspec, scale = T, k=4)
 
 
+
 data.scores <- as.data.frame(scores(plotspecNMDS, display=c("sites")))
 data.scores$ID <- row.names(data.scores)
 data.scores <- as_tibble(data.scores) %>%
@@ -307,13 +308,39 @@ data.scores <- as_tibble(data.scores) %>%
 plotkey <- vegtog %>%
   dplyr::select(quadrat, precinct, grazetrt, year)%>%
   mutate(quadyr=paste(quadrat, year, sep = "_"))%>%
-  group_by(quadyr, precinct, grazetrt)%>%
-  summarize()
-plotkey2<-subset(plotkey, (plotkey$quadyr%in%rownames(plotspec)))
-plotspec<-subset(plotspec, rownames(plotspec)%in%plotkey2$quadyr)
+  dplyr::select(quadyr, precinct, grazetrt)%>%
+  unique()
+
+plotkey2<-subset(plotkey, (plotkey$quadyr%in%rownames(plotspec))) %>%
+  unique() %>%
+  tbl_df() 
+
+plotkeycheck<-subset(plotkey2, (plotkey2$quadyr%in%rownames(plotspec))) %>%
+  group_by(quadyr, grazetrt) %>%
+  mutate(repcount = n()) %>%
+  filter(repcount == 2)
+
+plotkey <- plotkey2 %>%
+  filter(quadyr != unique(plotkeycheck$quadyr)) %>%
+  mutate(quadyr2 = quadyr) %>%
+  separate(quadyr2, c("quadrat", "year"), sep = "_")%>%
+  mutate(block=substr(quadyr, 3, 3))
+
+plotspec$quadyr <- row.names(plotspec)
+plotspec2<-plotspec %>%
+  mutate(quadyr = row.names(plotspec)) %>%
+  filter(quadyr != unique(plotkeycheck$quadyr)) 
+
+row.names(plotspec2) <- plotspec2$quadyr
+plotspec2$quadyr <- NULL
+plotspec <- plotspec2
+
+
+
 
 data.scores <- left_join(data.scores, plotkey)%>%
   mutate(trt=paste(grazetrt, precinct, sep="_"))
+data.scores<- left_join(data.scores, climate, by=c("year"="rainyear"))
 
 # Extract and format species scores
 species.scores <- as.data.frame(scores(plotspecNMDS, display=c("species")))
@@ -334,12 +361,26 @@ ggplot() +
   theme_bw() + facet_wrap(~year, scales="free")
 
 
+ggplot() +
+  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
+  geom_jitter(data=subset(data.scores),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
+  stat_ellipse(data=subset(data.scores), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
+  # add the species labels
+  #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
+  scale_color_manual(labels=c("Grazed, Off-Precinct", "Grazed, On-Precinct","Ungrazed, Off-Precinct",  "Ungrazed, On-Precinct"), 
+                     values=c("pink", "lightblue", "brown",  "darkblue")) +
+  coord_equal() +
+  theme_bw() 
+
+
+
+
 ###  DISPERSION AND CENTROID STATS - multivairate view of communities
       # multivariate difference: centroids and dispersion between treatments (quad level composition - no blocks)
       # multivariate change: change in species comp from 2007/2014 to 2017
       # PERMANOVA - statistical testing of centroid difference
       # betadisper - dispersion using vegan/to verify my results
-
+** run dispersion output by treatment across precip. 
 multivariate_difference(subset(vegtog_vegonly, precinct=="N"), 
                         species.var="code", 
                         abundance.var="count",
@@ -367,10 +408,10 @@ multivariate_difference(subset(vegtog_vegonly, year==2014&grazetrt=="ungrazed"),
 
 
 # PERMANOVA
-plotkey2<-as.tibble(rownames(plotspec))%>%
-  mutate(quadrat=substr(value, 1,9))%>%
-  mutate(quadyr=value)%>%
-  dplyr::select(-1)
+# plotkey2<-as.tibble(rownames(plotspec))%>%
+#   mutate(quadrat=substr(value, 1,9))%>%
+#   mutate(quadyr=value)%>%
+#   dplyr::select(-1)
 plotkey2<-left_join(plotkey2, plotkey)%>% # new plot key with shifting quadrats
   mutate(year=substr(quadyr, 11, 14))%>%
   mutate(block=substr(quadrat, 3,3))
@@ -398,9 +439,11 @@ rownames(plotspec2017n)<-plotspec2017n$rowname
 plotspec2017n<-dplyr::select(plotspec2017n, -rowname)
 
 ### Incorrect (no strata) - all years
-adonis(plotspec ~ precinct*grazetrt, data=plotkey2, perm=1e3)  ### some issue with not equal length datasets
+adonis(plotspec ~ precinct*grazetrt, data=plotkey, perm=1e3)  ### some issue with not equal length datasets
 
 ### Correct hypothesis test with strata
+adonis(plotspec ~ precinct*grazetrt, data=plotkey, strata=plotkey$block, perm=1e3)
+
 
 #2017 main effects
 adonis(plotspec2017 ~ precinct*grazetrt, data=plotkey2017, strata=plotkey2017$block, perm=1e3) # grazing and precinct significant, but not interaction
