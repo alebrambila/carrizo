@@ -25,49 +25,12 @@
 library(codyn)
 library(tidyverse)
 
-### 1. Species Richness
+### 1. Alpha Diversity
 
-# Quadrat Level
+#each year by quadrat
 alpha.rich <- vegtog_vegonly %>%
   group_by(year, grazetrt, block, quadrat, site, precinct) %>%
   summarize(richness=length(unique(code)))#
-
-#ggplot(subset(alpha.rich, year==2014|year==2017), 
-#       aes(x=interaction(grazetrt, precinct), 
-#           y=richness, color=interaction(grazetrt, precinct))) + 
-#  geom_boxplot() +
-#  theme(axis.text.x=element_blank()) +
-#  geom_jitter(width=.1, color="black") +
-#  facet_wrap(~year) + 
-#  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
-##                     values=c("pink", "brown", "lightblue", "darkblue")) +
-#  xlab("Treatment") +
-#  ggtitle("Quad-level Species Richness")
-
-# Plot Level -- not enough replicates
-#gamma.rich <- vegtog %>%
-#  filter(code!="nohit") %>%
-#  group_by(year, grazetrt, site, precinct) %>%
-#  summarize(richness=length(unique(code)))%>%
-#  group_by(grazetrt, precinct)
-
-#ggplot(subset(gamma.rich, year==2014|year==2017), 
-#       aes(x=interaction(grazetrt, precinct), 
-#           y=richness, color=interaction(grazetrt, precinct))) + 
-#  geom_boxplot() +
-#  theme(axis.text.x=element_blank()) +
-#  geom_jitter(width=.1, color="black") +
-#  facet_wrap(~year) + 
- # scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
- #                    values=c("pink", "brown", "lightblue", "darkblue")) +
-#  xlab("Treatment") +
-#  ggtitle("Plot-level Species Richness")
-
-
-### 2. Shannon Diversity
-
-#Quadrat level 
-#overall quad level shannon diversity
 alpha.shan <- vegtog_vegonly
 alpha.shan <- left_join(alpha.shan, community_diversity(alpha.shan, time.var = "year", abundance.var="count", replicate.var="quadrat", metric = c("Shannon")))
 alpha.shan <- alpha.shan %>%
@@ -107,7 +70,7 @@ ggplot(subset(alpha.shan, !is.na(precip)&wetordry!="normal"),
 
 ggplot(subset(alpha.shan), 
        aes(x=interaction(grazetrt, precinct), 
-           y=Shannon, color=interaction(grazetrt, precinct))) + 
+           y=richness, color=interaction(grazetrt, precinct))) + 
   geom_boxplot() +
   theme(axis.text.x=element_blank()) +
   scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
@@ -115,38 +78,35 @@ ggplot(subset(alpha.shan),
   xlab("Treatment") +
   ggtitle("Quad-level Shannon Diversity")
 
-#native quad level shannon diversity
-#alpha.shan.n <- vegtog %>%
-#  filter(year==2014|year==2017)%>%
-#  filter(native=="n")
-#alpha.shan.n <- left_join(alpha.shan.n, community_diversity(alpha.shan.n, time.var = "year", abundance.var="count", replicate.var="quadrat", metric = c("Shannon")))
-#alpha.shan.n <- alpha.shan.n %>%
-#  group_by(year, site, quadrat, precinct, grazetrt, Shannon) %>%
-#  summarize() %>%
-#  group_by()
+#integrated across years by quadrat
+alpha.allyear <-vegtog_vegonly %>%
+  group_by(grazetrt, block, quadrat, site, precinct, code)%>%
+  summarize(count=sum(count))
+alpha.allyear<-left_join(alpha.allyear, community_structure(alpha.allyear, abundance.var="count", replicate.var="quadrat", metric="SimpsonEvenness"))
+alpha.allyear <- left_join(alpha.allyear, community_diversity(alpha.allyear,  abundance.var="count", replicate.var="quadrat", metric = c("Shannon")))%>%
+  group_by(grazetrt, block, quadrat, site, precinct, Shannon, SimpsonEvenness)%>%
+  summarize(richness=length(unique(code)))%>%
+  ungroup()%>%
+  mutate(alltrt=as.factor(paste(grazetrt, precinct, sep="_")))
 
-#ggplot(subset(alpha.shan.n, year==2014|year==2017), 
-#       aes(x=interaction(grazetrt, precinct), 
-#           y=Shannon, color=interaction(grazetrt, precinct))) + 
-#  geom_boxplot() +
-#  theme(axis.text.x=element_blank()) +
-#  geom_jitter(width=.1, color="black") +
-#  facet_wrap(~year) + 
-#  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
-#                     values=c("pink", "brown", "lightblue", "darkblue")) +
-#  xlab("Treatment") +
-#  ggtitle("Quad-level Native Shannon Diversity")
+ggplot(subset(alpha.allyear), 
+       aes(x=interaction(grazetrt, precinct), 
+           y=SimpsonEvenness, color=interaction(grazetrt, precinct))) + 
+  geom_boxplot() +
+  theme(axis.text.x=element_blank()) +
+  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+                     values=c("pink", "brown", "lightblue", "darkblue")) +
+  xlab("Treatment") +
+  ggtitle("Quad-level Shannon Diversity")
 
 ## SHANNON DIVERSITY STATS ##
-l <- lme(Shannon~alltrt, random =~1|factor(block),  subset(alpha.shan, year==2014), na.action = na.omit)
+
+
+l <- lme(Shannon~alltrt, random=~1|factor(block),  subset(alpha.shan, year>2006), na.action = na.omit)
 anova(l)
 summary(glht(l, linfct=mcp(alltrt="Tukey")))
 
-l <- lme(Shannon~alltrt, random =~1|factor(block),  subset(alpha.shan, year==2017), na.action = na.omit)
-anova(l)
-summary(glht(l, linfct=mcp(alltrt="Tukey")))
-
-l <- lme(Shannon~alltrt, random=~1|factor(block),  subset(alpha.shan), na.action = na.omit)
+l <- lme(richness~grazetrt, random=~1|factor(block),  alpha.allyear, na.action = na.omit)
 anova(l)
 summary(glht(l, linfct=mcp(alltrt="Tukey")))
 
