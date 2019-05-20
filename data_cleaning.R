@@ -326,6 +326,7 @@ ggplot(quadCount2, aes(x=year, y=totquadcount, color=interaction(grazetrt, preci
   scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
   labs(y="# of Quadrats")+facet_wrap(~block)
 
+
 # extra plots cleaned out.  apply same procedure to vegtog
 vegtog<-left_join(vegtog, vegsum)%>%
   mutate(new=ifelse(is.na(new), "good", new))%>%
@@ -333,8 +334,26 @@ vegtog<-left_join(vegtog, vegsum)%>%
   dplyr::select(-new) #vegtog lost about 150 observations.  sitting at EXACTLY 5000 now, cool! 
 
 
-vegtog<-left_join(vegtog, rainyear, by=c("year"="rainyear"))
-vegtog_vegonly<-left_join(vegtog_vegonly, rainyear, by=c("year"="rainyear"))
+
+# vegtogcheck<-left_join(vegtog, rainyear, by=c("year"="rainyear")) %>%
+#   group_by(year, block, site, quadrat, code, precinct, grazetrt, native, lifecycle, growthhabit, april, october, wetordry, precip)%>%
+#   mutate(repcount = n()) %>%
+#   filter(code != "nohit" & repcount != 1) %>%
+#   group_by(year, block, site, quadrat, count, code, precinct, grazetrt, native, lifecycle, growthhabit, april, october, wetordry, precip)%>%
+#   mutate(repcount2 = n())
+
+vegtog<-unique(vegtog)
+
+
+
+vegtog<-left_join(vegtog, rainyear, by=c("year"="rainyear")) %>%
+  group_by(year, block, site, quadrat, code, precinct, grazetrt, native, lifecycle, growthhabit, april, october, wetordry, precip)%>%
+  summarize(count=sum(count)) %>%
+  tbl_df()
+
+vegtog_vegonly<-filter(vegtog, code!="nohit")
+
+
 
 # Clean up environment.
 rm(PL1, PL2, rainyear, precip, MAT, climsum, climsum2)
@@ -344,7 +363,6 @@ names(vegtog)
 str(vegtog)
 
 vegtog<-unique(vegtog)
-vegtog_vegonly<-unique(vegtog_vegonly)
 
 ##FN for Calculating SE
 calcSE<-function(x){
