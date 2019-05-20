@@ -491,19 +491,44 @@ ggplot(vegtog.agg, aes(x=year, y=meancount))+
   scale_color_hue(direction=3)+
   theme_classic()
 
+vegsum0<-vegtog_vegonly%>%
+  group_by(year, code, site, block, grazetrt, precinct)%>%
+  summarize(count=sum(count))%>%
+  ungroup()%>%
+  mutate(alltrt=as.factor(paste(precinct, grazetrt, sep="_")))%>%
+  mutate(site.trt=as.factor(paste(site, alltrt, sep="_")))
 
 
-grazed_P_turnover<-turnover(vegtog_vegonly,
+turnover<-turnover(vegsum0,
                             time.var="year",
                             species.var="code",
                             abundance.var="count",
-                            replicate.var="quadrat")
+                            replicate.var="site.trt")%>%
+  mutate(site=substr(site.trt, 1, 3), alltrt=substr(site.trt, 5, 7))%>%
+  group_by(alltrt, year)%>%
+  summarize(mean.turnover=mean(as.numeric(total)), se.turnover=calcSE(as.numeric(total)))
 
-grazed_P_rankshift <- rank_shift(vegtog_vegonly,
+ggplot(turnover)+geom_line(aes(as.factor(year), mean.turnover, group=alltrt, color=alltrt))
+
+rankshift <- rank_shift(vegsum0,
                             time.var = "year",
                             species.var = "code",
                             abundance.var = "count", 
-                            replicate.var = "quadrat")
+                            replicate.var = "site.trt")%>%
+  mutate(site=substr(site.trt, 1, 3), alltrt=substr(site.trt, 5, 7))%>%
+  group_by(alltrt, year_pair)%>%
+  summarize(mean.MRS=mean(MRS), se.MRS=calcSE(MRS))%>%
+  mutate(year=substr(year_pair, 6,9))
 
-#Select the final time point from the returned time.var_pair
-KNZ_rankshift$year <- as.numeric(substr(KNZ_rankshift$year_pair, 6,9))
+ggplot(rankshift)+geom_line(aes(as.factor(year_pair), mean.MRS, group=alltrt, color=alltrt))
+
+richsum<-vegsum0%>%
+  group_by(year, site, code, alltrt, site.trt)%>%
+  summarize(count=sum(count))
+richsum <- left_join(richsum, community_diversity(richsum, time.var = "year", abundance.var="count", replicate.var="site.trt", metric = c("Shannon")))%>%
+  group_by(year, site, alltrt, Shannon)%>%
+  summarize(richness=length(unique(as.factor(code))))%>%
+  group_by(year, alltrt)%>%
+  summarize(meanrich=mean(richness), meanshan=mean(Shannon))
+
+ggplot(richsum)+geom_line(aes(as.factor(year), meanshan, group=alltrt, color=alltrt))
