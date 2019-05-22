@@ -152,7 +152,7 @@ ggplot(subset(biomass, year==2014|year==2017),
   ggtitle("October Biomass")
 
 ### 4. Functional group % cover
-func.agg<-vegtog%>%
+func.agg<-vegtog_vegonly%>%
   group_by(year, quadrat, site, native, growthhabit, precinct, grazetrt)%>%
   summarize(count=sum(count)) %>%
   filter(!is.na(native))%>%
@@ -173,12 +173,12 @@ ggplot(subset(funcTrend, (year==2014|year==2017)&(func=="grass_i")),
   ggtitle("Functional Group Cover")
 
 ggplot(subset(funcTrendsum, year==2014|year==2017), aes(x=func, 
-                      y=mean, fill=interaction(grazetrt, precinct)))+
+                                                        y=mean, fill=interaction(grazetrt, precinct)))+
   geom_bar(stat="identity", position="dodge")+
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position="dodge") +
   facet_wrap(~year)+
   scale_fill_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
-                     values=c("pink", "brown", "lightblue", "darkblue"))+
+                    values=c("pink", "brown", "lightblue", "darkblue"))+
   labs(x="Functional Group", y="%cover")
 
 
@@ -194,38 +194,6 @@ ggplot(subset(funcTrendsum, year==2014|year==2017), aes(x=func,
 #  xlab("Treatment") +
 #  ggtitle("Functional Group Cover")
 
-
-### 5. Specific Native and Invasive species % cover
-
-# a. Percent cover of key weeds. Log-transformed.
-ggplot(subset(vegtog, (year==2014|year==2017)&(code=="hormur"|code=="schara"|code=="bromad")), 
-       aes(x=interaction(grazetrt, precinct), 
-           y=log(count), color=interaction(grazetrt, precinct))) +
-  geom_boxplot() +
-  theme(axis.text.x=element_blank()) +
-  geom_jitter(width=.1, color="black") +
-  facet_grid(code~year, scales="free") + 
-  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
-                    values=c("pink", "brown", "lightblue", "darkblue")) +
-  xlab("Treatment") + ylab ("log(Count)") + 
-  ggtitle("Invasive grass cover")
-
-## 2017 weeds STATS ##
-hormur.2017.anova <- aov(count~factor(grazetrt)*factor(precinct)+factor(site), subset(vegtog, (year==2017)&(code=="hormur")))
-summary(hormur.2017.anova)
-TukeyHSD(hormur.2017.anova) #grazed p-n is significantly different, ungrazed p-n is almost. grazing doesnt affect w/in p/n
-
-bromad.2017.anova <- aov(count~factor(grazetrt)*factor(precinct)+factor(site), subset(vegtog, (year==2017)&(code=="bromad")))
-summary(bromad.2017.anova)
-TukeyHSD(bromad.2017.anova) #nothing
-
-schara.2017.anova <- aov(count~factor(grazetrt)*factor(precinct)+factor(site), subset(vegtog, (year==2017)&(code=="schara")))
-summary(schara.2017.anova)
-TukeyHSD(schara.2017.anova) #nothing
-
-
-# Nothin much, look at with key native too. NOT MUCH NATIVE GRASS AT ALL
-# TO DO: eventually work this in to a time block (before during after drought repeated measures ANOVA, but not yet)
 
 ##############################################
 ## II. Community NMDS Ordinations 2014-2017 ##
@@ -313,7 +281,7 @@ ggplot() +
   geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
   geom_jitter(data=subset(data.scores, year==2014|year==2017),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
   stat_ellipse(data=subset(data.scores, year==2014|year==2017), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
-   # add the species labels
+  # add the species labels
   #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
   scale_color_manual(labels=c("Grazed, Off-Precinct", "Grazed, On-Precinct","Ungrazed, Off-Precinct",  "Ungrazed, On-Precinct"), 
                      values=c("pink", "lightblue", "brown",  "darkblue")) +
@@ -336,29 +304,34 @@ ggplot() +
 
 
 ###  DISPERSION AND CENTROID STATS - multivairate view of communities
-      # multivariate difference: centroids and dispersion between treatments (quad level composition - no blocks)
-      # multivariate change: change in species comp from 2007/2014 to 2017
-      # PERMANOVA - statistical testing of centroid difference
-      # betadisper - dispersion using vegan/to verify my results
-** run dispersion output by treatment across precip. 
-multivariate_difference(subset(vegtog_vegonly, precinct=="N"), 
+# multivariate difference: centroids and dispersion between treatments (quad level composition - no blocks)
+# multivariate change: change in species comp from 2007/2014 to 2017
+# PERMANOVA - statistical testing of centroid difference
+# betadisper - dispersion using vegan/to verify my results
+multivariate_difference(subset(vegtog_vegonly, year==2017&precinct=="N"), 
                         species.var="code", 
                         abundance.var="count",
                         replicate.var="quadrat",
                         treatment.var="grazetrt",
                         time.var="year")
+# year grazetrt grazetrt2 composition_diff abs_dispersion_diff trt_greater_disp
+#1 2017   grazed  ungrazed        0.3107531          0.08183136         ungrazed
 
-multivariate_difference(subset(vegtog_vegonly, year==2014&precinct=="P"), 
+multivariate_difference(subset(vegtog_vegonly, year==2017&precinct=="P"), 
                         species.var="code", 
                         abundance.var="count",
                         replicate.var="quadrat",
                         treatment.var="grazetrt")
 
-multivariate_difference(subset(vegtog_vegonly, year==2014&grazetrt=="grazed"), 
+# grazetrt grazetrt2 composition_diff abs_dispersion_diff trt_greater_disp
+# 1   grazed  ungrazed        0.2040796          0.03096359           grazed
+
+multivariate_difference(subset(vegtog_vegonly, year==2017&grazetrt=="grazed"), 
                         species.var="code", 
                         abundance.var="count",
                         replicate.var="quadrat",
                         treatment.var="precinct")
+P
 
 multivariate_difference(subset(vegtog_vegonly, year==2014&grazetrt=="ungrazed"), 
                         species.var="code", 
@@ -375,7 +348,7 @@ multivariate_difference(subset(vegtog_vegonly, year==2014&grazetrt=="ungrazed"),
 plotkey2<-left_join(plotkey2, plotkey)%>% # new plot key with shifting quadrats
   mutate(year=substr(quadyr, 11, 14))%>%
   mutate(block=substr(quadrat, 3,3))
-plotkey2017<-plotkey2%>% #plotkey for only 2017
+plotkey2017<-plotkey%>% #plotkey for only 2017
   filter(year==2017)
 plotkey2017n<-plotkey2017%>%#plotkey for 2017 only off mound
   filter(precinct=="N")
@@ -435,10 +408,10 @@ specdist2017n<-vegdist(plotspec2017n, method="bray")
 specdist2017p<-vegdist(plotspec2017p, method="bray")
 
 #2017 disp tests
-
 #precinct main effect
 dispersion<-betadisper(specdist2017, group=plotkey2017$precinct)
 permutest(dispersion)
+TukeyHSD(dispersion)
 #Groups     1 0.15346 0.153460 16.638    999  0.001 ***
 
 #Grazing main effect
@@ -449,6 +422,7 @@ permutest(dispersion)
 #interaction effect test
 dispersion<-betadisper(specdist2017, group=interaction(plotkey2017$precinct, plotkey2017$grazetrt))
 permutest(dispersion)
+TukeyHSD(dispersion)
 # Groups     3 0.28245 0.094151 9.9103    999  0.001 ***
 
 #interaction on precinct - grazing
@@ -456,40 +430,156 @@ dispersion<-betadisper(specdist2017p, group=plotkey2017p$grazetrt)
 permutest(dispersion)
 #Groups     1 0.008188 0.0081878 1.2487    999   0.27 NOOOOOOOO
 
+#off grazing
 dispersion<-betadisper(specdist2017n, group=plotkey2017n$grazetrt)
 permutest(dispersion)
 #Groups     1 0.04796 0.047959 3.4495    999  0.066 . NOOOOO
 
+#ALL TIME DISPERSION / PRECIP
+specdist<-vegdist(plotspec, method="bray")
+plotkey.alltrt<-mutate(plotkey, alltrt=paste(grazetrt, precinct, sep="_"))%>%
+  mutate(trtyr=paste(alltrt, year, sep="_"))
+dispersion<-betadisper(specdist, group=plotkey.alltrt$trtyr)
+dispersion0<-as.tibble(tapply(dispersion$distances, plotkey.alltrt$trtyr, mean))
+dispersion0<-mutate(dispersion0, trtyr=rownames(dispersion0))%>%
+  separate(trtyr, into=c("grazetrt", "precinct", "year"), sep="_", remove=TRUE)%>%
+  mutate(year=as.numeric(year))
+dispersion0<-left_join(dispersion0, climate, by = c("year" = "rainyear"))%>%
+  ungroup()%>%
+  dplyr::select(1:4, 7, 8, 11)%>%
+  filter(!is.na(precip))
+
+ggplot(dispersion0) + geom_boxplot(data=subset(dispersion0), aes(x=interaction(grazetrt, precinct), y=value)) + facet_wrap(~wetordry)
+
+ggplot(dispersion0, aes(x=precip, y=value, group=interaction(grazetrt, precinct), 
+                        color=interaction(grazetrt, precinct))) +
+  geom_smooth(, method=lm, se=FALSE)+ylab("dispersion")+
+  geom_point()
 
 
-########################
-# RACs/abundance clocks- actually communities are changing, who is leading the cause
-
-topspp<-vegtog_vegonly%>%
-  group_by(year, grazetrt, precinct, year, code)%>%
-  summarize(meancount=mean(count))%>%
-  filter(meancount>24.5) %>%
+##################################
+### INDIVIDUAL SPECIES TRENDS
+###################################
+plantkey <- read_csv("plant list.csv")%>%      # species codes interpreted
+  dplyr::select(4, 5, 13, 27)
+names(plantkey)<-c("code", "sciname", "func", "native")
+allspp<-vegtog_vegonly%>%
+  group_by(year, grazetrt, precinct, year, code, precip)%>%
+  summarize(meancount=mean(count), secount=calcSE(count))%>%
   filter(code!="bare")%>%
   filter(code!="litter")%>%
   filter(code!="bare ")%>%
   filter(code!="litter ")
+allspp<-left_join(allspp, plantkey)%>%
+  dplyr::select(-func, -native)
 
-topspp2<-unique(topspp$code)
+func<-vegtog_vegonly%>%
+  group_by(code, native, growthhabit)%>%
+  summarize() %>%
+  filter(!is.na(native))%>%
+  mutate(func=paste(growthhabit, native, sep="_"))
 
-vegtog.agg<-vegtog_vegonly%>%
+allspp<-left_join(allspp, func)
+unique(allspp$sciname)
+
+#### IG: bromus madritensis, schismus arabicus, hordeum murinum, vulpia myuros
+###  IF: capsella bursa-pastoris, descuraninia sophia, erodium cicutarium, herniaria hirsuta, salsola tragus, sisymbrium irio
+###  NG: poa secunda, vulpia microstachys
+###  NF: all others (25 spp)
+
+keyspp<- allspp %>%
+  ungroup()%>%
+ mutate(code=ifelse(code=="guilas"|code=="lasmin"|code=="lepnit"|code=="trigra", code, ifelse(func=="forb_n", "wildflower", code)))%>%
+  mutate(code=ifelse(code=="erocic", code, ifelse(func=="forb_i", "iforb", code)))%>%
+  group_by(year, grazetrt, precinct, code, precip, growthhabit, native, func)%>%
+    summarize(meancount=sum(meancount))
+
+
+  vegtog.agg<-vegtog_vegonly%>%
   group_by(year, grazetrt, precinct, year, code, precip)%>%
-  summarize(meancount=mean(count), secount=calcSE(count))%>%
+  summarize(meancount=mean(count), secount=calcSE(count))#%>%
   filter(code%in%topspp2)
 
-ggplot(vegtog.agg, aes(x=year, y=meancount))+
+  
+#allspp
+ggplot(keyspp, aes(x=as.factor(year), y=meancount))+
+  geom_bar(aes(x=as.factor(year), y=precip/180), stat="identity", fill='lightgrey')+
+  geom_line(aes(group=code, color=code))+
+  #geom_errorbar(aes(x=year, ymin=meancount-secount, ymax=meancount+secount, color=code), width=.1)+
+  facet_grid(grazetrt~precinct)+
+  scale_y_continuous(sec.axis = sec_axis(~.*180, name = "Annual Precipitation in mm"))+
+  ylab("Mean % Cover/Plot")+
+  theme_classic()
+
+#grasses
+ggplot(subset(keyspp, growthhabit=="grass"), aes(x=year, y=meancount))+
+  geom_bar(aes(x=as.integer(year), y=precip/180), stat="identity", fill='lightgrey')+  # weird in precip, adding them up?
+  geom_line(aes(group=code, color=code))+
+  #geom_errorbar(aes(x=year, ymin=meancount-secount, ymax=meancount+secount, color=code), width=.1)+
+  facet_grid(grazetrt~precinct)+
+  scale_y_continuous(sec.axis = sec_axis(~.*180, name = "Annual Precipitation in mm"))+
+  ylab("Mean % Cover/Plot")+
+  theme_classic()
+
+#native forbs
+ggplot(subset(keyspp, func=="forb_n"), aes(x=year, y=meancount))+
   geom_bar(aes(x=as.integer(year), y=precip/50), stat="identity", fill='lightgrey')+
   geom_line(aes(group=code, color=code))+
-  geom_errorbar(aes(x=year, ymin=meancount-secount, ymax=meancount+secount, color=code), width=.1)+
+ # geom_errorbar(aes(x=year, ymin=meancount-secount, ymax=meancount+secount, color=code), width=.1)+
   facet_grid(grazetrt~precinct)+
   scale_y_continuous(sec.axis = sec_axis(~.*50, name = "Annual Precipitation in mm"))+
   ylab("Mean % Cover/Plot")+
-  scale_color_hue(direction=3)+
   theme_classic()
+
+#inv forbs
+ggplot(subset(keyspp, func=="forb_i"), aes(x=year, y=meancount))+
+  geom_bar(aes(x=as.integer(year), y=precip/20), stat="identity", fill='lightgrey')+
+  geom_line(aes(group=code, color=code))+
+  # geom_errorbar(aes(x=year, ymin=meancount-secount, ymax=meancount+secount, color=code), width=.1)+
+  facet_grid(grazetrt~precinct)+
+  scale_y_continuous(sec.axis = sec_axis(~.*20, name = "Annual Precipitation in mm"))+
+  ylab("Mean % Cover/Plot")+
+  theme_classic()
+
+
+
+### 5. Specific Native and Invasive species % cover
+
+# a. Percent cover of key weeds. Log-transformed.
+ggplot(subset(vegtog, (year==2014|year==2017)&(code=="hormur"|code=="schara"|code=="bromad")), 
+       aes(x=interaction(grazetrt, precinct), 
+           y=log(count), color=interaction(grazetrt, precinct))) +
+  geom_boxplot() +
+  theme(axis.text.x=element_blank()) +
+  geom_jitter(width=.1, color="black") +
+  facet_grid(code~year, scales="free") + 
+  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+                     values=c("pink", "brown", "lightblue", "darkblue")) +
+  xlab("Treatment") + ylab ("log(Count)") + 
+  ggtitle("Invasive grass cover")
+
+## 2017 weeds STATS ##
+hormur.2017.anova <- aov(count~factor(grazetrt)*factor(precinct)+factor(site), subset(vegtog, (year==2017)&(code=="hormur")))
+summary(hormur.2017.anova)
+TukeyHSD(hormur.2017.anova) #grazed p-n is significantly different, ungrazed p-n is almost. grazing doesnt affect w/in p/n
+
+bromad.2017.anova <- aov(count~factor(grazetrt)*factor(precinct)+factor(site), subset(vegtog, (year==2017)&(code=="bromad")))
+summary(bromad.2017.anova)
+TukeyHSD(bromad.2017.anova) #nothing
+
+schara.2017.anova <- aov(count~factor(grazetrt)*factor(precinct)+factor(site), subset(vegtog, (year==2017)&(code=="schara")))
+summary(schara.2017.anova)
+TukeyHSD(schara.2017.anova) #nothing
+
+
+# Nothin much, look at with key native too. NOT MUCH NATIVE GRASS AT ALL
+
+
+
+
+####################
+### TURNOVER ETC
+###################
 
 vegsum0<-vegtog_vegonly%>%
   group_by(year, code, site, block, grazetrt, precinct)%>%
@@ -500,10 +590,10 @@ vegsum0<-vegtog_vegonly%>%
 
 
 turnover<-turnover(vegsum0,
-                            time.var="year",
-                            species.var="code",
-                            abundance.var="count",
-                            replicate.var="site.trt")%>%
+                   time.var="year",
+                   species.var="code",
+                   abundance.var="count",
+                   replicate.var="site.trt")%>%
   mutate(site=substr(site.trt, 1, 3), alltrt=substr(site.trt, 5, 7))%>%
   group_by(alltrt, year)%>%
   summarize(mean.turnover=mean(as.numeric(total)), se.turnover=calcSE(as.numeric(total)))
@@ -511,10 +601,10 @@ turnover<-turnover(vegsum0,
 ggplot(turnover)+geom_line(aes(as.factor(year), mean.turnover, group=alltrt, color=alltrt))
 
 rankshift <- rank_shift(vegsum0,
-                            time.var = "year",
-                            species.var = "code",
-                            abundance.var = "count", 
-                            replicate.var = "site.trt")%>%
+                        time.var = "year",
+                        species.var = "code",
+                        abundance.var = "count", 
+                        replicate.var = "site.trt")%>%
   mutate(site=substr(site.trt, 1, 3), alltrt=substr(site.trt, 5, 7))%>%
   group_by(alltrt, year_pair)%>%
   summarize(mean.MRS=mean(MRS), se.MRS=calcSE(MRS))%>%
@@ -532,3 +622,38 @@ richsum <- left_join(richsum, community_diversity(richsum, time.var = "year", ab
   summarize(meanrich=mean(richness), meanshan=mean(Shannon))
 
 ggplot(richsum)+geom_line(aes(as.factor(year), meanshan, group=alltrt, color=alltrt))
+
+
+##########
+# Indicator Species
+###########
+library(indicspecies)
+plotspecrel<-decostand(plotspec2017, "total")
+indicators<-multipatt(plotspecrel2017, interaction(plotkey2017$grazetrt, plotkey2017$precinct), func="IndVal.g", control=how(nperm=999))
+summary(indicators)
+summary(indicators, alpha=1)
+
+#r.g 2017
+# grazed.n (lepnit)
+# ungrazed.n(trilan, trigra, micele)
+# ungrazed.p(guilas)
+# ungraed both (lasmin)
+# both p (hormur)
+
+#indval 
+# ungrazed N trilan mecele
+# ungrazed both lasmin
+# all but ungrazed P : lepnit, vulmic
+
+
+#nothing turns up across all years, but after 10 years of grazing removal there are some indicators. 
+
+#cluster (how to I test against treatment?)
+library(cluster)
+plotspecbray<-vegdist(plotspec, method="bray")
+plotpseccluster<-agnes(plotspecbray, diss=TRUE, method="average", keep.diss=TRUE)
+summary(plotpseccluster)
+pltree(plotpseccluster)
+cut_tree<-cutree(plotpseccluster, k=4)
+ind_species<-multipatt(plotspecrel, cut_tree, duleg=TRUE)
+summary(ind_species)
