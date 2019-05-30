@@ -16,7 +16,7 @@
 ###   5. Specific native and invasive species
 ###     a. Relative cover
 ###     b. Number of quadrats occupied
-### II. NMDS Ordination
+### II. NMDS Ordination, individual species, turnover etc. 
 
 
 ########################################
@@ -24,40 +24,44 @@
 ########################################
 library(codyn)
 library(tidyverse)
-
+############################
 ### 1. Alpha Diversity
-
+#############################
 #each year by quadrat
 alpha.rich <- vegtog_vegonly %>%
   group_by(year, grazetrt, block, quadrat, site, precinct) %>%
   summarize(richness=length(unique(code)))#
 alpha.shan <- vegtog_vegonly
 alpha.shan <- left_join(alpha.shan, community_diversity(alpha.shan, time.var = "year", abundance.var="count", replicate.var="quadrat", metric = c("Shannon")))
+alpha.shan<-left_join(alpha.shan, community_structure(alpha.shan, time.var="year", abundance.var="count", replicate.var="quadrat", metric=c("SimpsonEvenness")))
 alpha.shan <- alpha.shan %>%
-  group_by(year, site, block, quadrat, precinct, grazetrt, Shannon) %>%
+  group_by(year, site, block, quadrat, precinct, grazetrt, Shannon, SimpsonEvenness) %>%
   summarize()%>%
   mutate(alltrt=(paste(grazetrt, precinct, sep="_")))%>%
   ungroup()
 alpha.shan<-left_join(alpha.shan, alpha.rich)
 alpha.shan<-mutate(alpha.shan, alltrt=factor(alltrt))
+alpha.shan<-mutate(alpha.shan, grazetrt=factor(grazetrt))
 alpha.shan<-left_join(alpha.shan, climate, by = c("year" = "rainyear"))%>%
   filter(!is.na(precip))%>%
   mutate(wet.trt=paste(alltrt, wetordry, sep=""))
 alpha.shan<-mutate(alpha.shan, wet.trt=factor(wet.trt))
 
+#2014/2017
 ggplot(subset(alpha.shan, year==2014|year==2017), 
        aes(x=interaction(grazetrt, precinct), 
            y=Shannon, color=interaction(grazetrt, precinct))) + 
   geom_boxplot() +
   theme(axis.text.x=element_blank()) +
-  geom_jitter(width=.1, color="black") +
+  #geom_jitter(width=.1, color="black") +
   facet_wrap(~year) + 
   scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
                      values=c("pink", "brown", "lightblue", "darkblue")) +
   xlab("Treatment") +
   ggtitle("Quad-level Shannon Diversity")
 
-ggplot(subset(alpha.shan, !is.na(precip)&wetordry!="normal"), 
+#wetordry
+ggplot(subset(alpha.shan, !is.na(precip)), 
        aes(x=interaction(grazetrt, precinct), 
            y=Shannon, color=interaction(grazetrt, precinct))) + 
   geom_boxplot() +
@@ -68,15 +72,18 @@ ggplot(subset(alpha.shan, !is.na(precip)&wetordry!="normal"),
   xlab("Treatment") +
   ggtitle("Quad-level Shannon Diversity")
 
+#alltime
 ggplot(subset(alpha.shan), 
        aes(x=interaction(grazetrt, precinct), 
-           y=richness, color=interaction(grazetrt, precinct))) + 
+           y=Shannon, color=interaction(grazetrt, precinct))) + 
   geom_boxplot() +
   theme(axis.text.x=element_blank()) +
   scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
                      values=c("pink", "brown", "lightblue", "darkblue")) +
   xlab("Treatment") +
   ggtitle("Quad-level Shannon Diversity")
+ggplot(alpha.shan, aes(x=grazetrt, y=Shannon)) + 
+  geom_boxplot()+facet_wrap(~block)
 
 #integrated across years by quadrat
 alpha.allyear <-vegtog_vegonly %>%
@@ -88,10 +95,12 @@ alpha.allyear <- left_join(alpha.allyear, community_diversity(alpha.allyear,  ab
   summarize(richness=length(unique(code)))%>%
   ungroup()%>%
   mutate(alltrt=as.factor(paste(grazetrt, precinct, sep="_")))
+alpha.allyear<-mutate(alpha.allyear, grazetrt=factor(grazetrt))
+
 
 ggplot(subset(alpha.allyear), 
        aes(x=interaction(grazetrt, precinct), 
-           y=SimpsonEvenness, color=interaction(grazetrt, precinct))) + 
+           y=richness, color=interaction(grazetrt, precinct))) + 
   geom_boxplot() +
   theme(axis.text.x=element_blank()) +
   scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
@@ -101,14 +110,60 @@ ggplot(subset(alpha.allyear),
 
 ## SHANNON DIVERSITY STATS ##
 
-
-l <- lme(Shannon~alltrt, random=~1|factor(block),  subset(alpha.shan, year>2006), na.action = na.omit)
+#not summed across years
+l <- lme(Shannon~grazetrt, random=~1|factor(block),  subset(alpha.shan), na.action = na.omit)
 anova(l)
-summary(glht(l, linfct=mcp(alltrt="Tukey")))
+summary(glht(l, linfct=mcp(grazetrt="Tukey")))
 
+#summed across years
 l <- lme(richness~grazetrt, random=~1|factor(block),  alpha.allyear, na.action = na.omit)
 anova(l)
+summary(glht(l, linfct=mcp(grazetrt="Tukey")))
+
+#rel to precip continuous
+summary(lm(Shannon~precip, data=alpha.shan))
+ggplot(alpha.shan, aes(x=precip, y=Shannon)) +geom_point(aes(color=alltrt)) +geom_smooth(method="lm", aes(color=alltrt))
+
+mm<- lme(Shannon~grazetrt, random=~1|factor(block),  alpha.shan, na.action = na.omit)
+summary(mm)
+
+##gamma
+gammadiv<-vegtog_vegonly%>%
+  group_by(year, grazetrt, block, site, precinct) %>%
+  summarize(richness=length(unique(code)))%>%
+  ungroup()%>%
+  mutate(grazetrt=factor(grazetrt))%>%
+  mutate(alltrt=as.factor(paste(grazetrt, precinct, sep="_")))
+
+l <- lme(richness~alltrt, random=~1|factor(block),  gammadiv, na.action = na.omit)
+anova(l)
 summary(glht(l, linfct=mcp(alltrt="Tukey")))
+
+ggplot(gammadiv, aes(x=alltrt, y=richness)) + geom_boxplot()
+
+gamma.allyear <-vegtog_vegonly %>%
+  group_by(grazetrt, block, site, precinct, code)%>%
+  summarize(count=sum(count))
+gamma.allyear<-left_join(gamma.allyear, community_structure(gamma.allyear, abundance.var="count", replicate.var="site", metric="SimpsonEvenness"))
+gamma.allyear <- left_join(gamma.allyear, community_diversity(gamma.allyear,  abundance.var="count", replicate.var="site", metric = c("Shannon")))%>%
+  group_by(grazetrt, block, site, precinct, Shannon, SimpsonEvenness)%>%
+  summarize(richness=length(unique(code)))%>%
+  ungroup()%>%
+  mutate(alltrt=as.factor(paste(grazetrt, precinct, sep="_")))
+gamma.allyear<-mutate(gamma.allyear, grazetrt=factor(grazetrt))
+
+ggplot(gamma.allyear, aes(x=alltrt, y=richness)) + geom_boxplot() +geom_point()
+
+l <- lme(richness~grazetrt, random=~1|factor(block),  subset(gamma.allyear, precinct=="P"), na.action = na.omit)
+anova(l)
+summary(glht(l, linfct=mcp(grazetrt="Tukey")))
+
+#gamma summary across all years
+gammasum<-vegtog_vegonly%>%
+  group_by(grazetrt, precinct, year)%>%
+  mutate(yrrichness=length(unique(code)))%>%
+  group_by(grazetrt, precinct)%>%
+  summarize(meanrich=mean(yrrichness), alltimerich=length(unique(code)))
 
 ### 3. Biomass
 biomass<-vegtog%>%
@@ -267,7 +322,8 @@ plotspec <- plotspec2
 
 
 data.scores <- left_join(data.scores, plotkey)%>%
-  mutate(trt=paste(grazetrt, precinct, sep="_"))
+  mutate(trt=paste(grazetrt, precinct, sep="_"))%>%
+  mutate(year=as.numeric(year))
 data.scores<- left_join(data.scores, climate, by=c("year"="rainyear"))
 
 # Extract and format species scores
@@ -277,7 +333,7 @@ species.scores <- as_tibble(species.scores)
 
 
 ##### NMDS VISUALIZATOIN #######
-ggplot() +
+yearNMDS<-ggplot() +
   geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
   geom_jitter(data=subset(data.scores, year==2014|year==2017),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
   stat_ellipse(data=subset(data.scores, year==2014|year==2017), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
@@ -288,7 +344,7 @@ ggplot() +
   coord_equal() +
   theme_bw() + facet_wrap(~year, scales="free")
 
-
+#all.years
 ggplot() +
   geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
   geom_jitter(data=subset(data.scores),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
@@ -300,24 +356,33 @@ ggplot() +
   coord_equal() +
   theme_bw() 
 
-
-
+#wet or dry
+extremeNMDS<-ggplot() +
+  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
+  geom_jitter(data=subset(data.scores, extremeyear=="wet"|extremeyear=="dry"),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
+  stat_ellipse(data=subset(data.scores, extremeyear=="wet"|extremeyear=="dry"), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
+  # add the species labels
+  #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
+  scale_color_manual(labels=c("Grazed, Off-Precinct", "Grazed, On-Precinct","Ungrazed, Off-Precinct",  "Ungrazed, On-Precinct"), 
+                     values=c("pink", "lightblue", "brown",  "darkblue")) +
+  coord_equal() +
+  theme_bw() +facet_wrap(~extremeyear)
+ggarrange(yearNMDS, extremeNMDS, common.legend=TRUE, legend.position="bottom", nrow=3, ncol=1)
 
 ###  DISPERSION AND CENTROID STATS - multivairate view of communities
 # multivariate difference: centroids and dispersion between treatments (quad level composition - no blocks)
 # multivariate change: change in species comp from 2007/2014 to 2017
 # PERMANOVA - statistical testing of centroid difference
 # betadisper - dispersion using vegan/to verify my results
-multivariate_difference(subset(vegtog_vegonly, year==2017&precinct=="N"), 
+multivariate_difference(subset(vegtog_vegonly0, year==2017), 
                         species.var="code", 
                         abundance.var="count",
-                        replicate.var="quadrat",
-                        treatment.var="grazetrt",
-                        time.var="year")
+                        replicate.var="quadyr",
+                        treatment.var="alltrt")
 # year grazetrt grazetrt2 composition_diff abs_dispersion_diff trt_greater_disp
 #1 2017   grazed  ungrazed        0.3107531          0.08183136         ungrazed
 
-multivariate_difference(subset(vegtog_vegonly, year==2017&precinct=="P"), 
+multivariate_difference(subset(vegtog_vegonly, year==2017&precinct=="N"), 
                         species.var="code", 
                         abundance.var="count",
                         replicate.var="quadrat",
@@ -350,22 +415,33 @@ plotkey2<-left_join(plotkey2, plotkey)%>% # new plot key with shifting quadrats
   mutate(block=substr(quadrat, 3,3))
 plotkey2017<-plotkey%>% #plotkey for only 2017
   filter(year==2017)
+plotkey2014<-plotkey%>% #plotkey for only 2017
+  filter(year==2014)
 plotkey2017n<-plotkey2017%>%#plotkey for 2017 only off mound
   filter(precinct=="N")
 plotkey2017p<-plotkey2017%>% #plot key for 2017 only on mound
   filter(precinct=="P")
 
 plotspec2017<-plotspec
+plotspec2014<-plotspec
 plotspec2017<-rownames_to_column(plotspec2017)
+plotspec2014<-rownames_to_column(plotspec2014)
+
 plotspec2017<-plotspec2017%>%
   mutate(year=substr(plotspec2017$rowname, 11, 14))%>%
   filter(year==2017)%>%
+  dplyr::select(-year)
+plotspec2014<-plotspec2014%>%
+  mutate(year=substr(plotspec2014$rowname, 11, 14))%>%
+  filter(year==2014)%>%
   dplyr::select(-year)
 
 plotspec2017p<-subset(plotspec2017, plotspec2017$rowname%in%plotkey2017p$quadyr)
 plotspec2017n<-subset(plotspec2017, plotspec2017$rowname%in%plotkey2017n$quadyr)
 
 plotspec2017<-column_to_rownames(plotspec2017)
+plotspec2014<-column_to_rownames(plotspec2014)
+
 rownames(plotspec2017p)<-plotspec2017p$rowname
 plotspec2017p<-dplyr::select(plotspec2017p, -rowname)
 rownames(plotspec2017n)<-plotspec2017n$rowname
@@ -387,6 +463,9 @@ adonis(plotspec2017 ~ precinct*grazetrt, data=plotkey2017, strata=plotkey2017$bl
 #    Residuals         60   12.4040 0.20673         0.81645             
 #    Total             63   15.1927                 1.00000 
 
+adonis(plotspec2014 ~ precinct*grazetrt, data=plotkey2014, strata=plotkey2014$block, perm=1e3) # grazing and precinct significant, but not interaction
+
+
 #off precinct test centroids by grazetrt
 adonis(plotspec2017n ~ grazetrt, data=plotkey2017n, strata=plotkey2017n$block, perm=1e3) # off mound w/wo grazing=significant diff
 #Df SumsOfSqs MeanSqs F.Model      R2   Pr(>F)   
@@ -403,9 +482,15 @@ adonis(plotspec2017p ~ grazetrt, data=plotkey2017p, strata=plotkey2017p$block, p
 
 
 #Dispersion stats
+specdist<-vegdist(plotspec, method="bray")
 specdist2017<-vegdist(plotspec2017, method="bray")
 specdist2017n<-vegdist(plotspec2017n, method="bray")
 specdist2017p<-vegdist(plotspec2017p, method="bray")
+# all time disp test
+dispersion<-betadisper(specdist, group=plotkey$grazetrt)
+permutest(dispersion)
+TukeyHSD(dispersion)
+
 
 #2017 disp tests
 #precinct main effect
@@ -417,6 +502,8 @@ TukeyHSD(dispersion)
 #Grazing main effect
 dispersion<-betadisper(specdist2017, group=plotkey2017$grazetrt)
 permutest(dispersion)
+TukeyHSD(dispersion)
+
 #Groups     1 0.02125 0.021246 1.0835    999  0.295
 
 #interaction effect test
@@ -428,7 +515,7 @@ TukeyHSD(dispersion)
 #interaction on precinct - grazing
 dispersion<-betadisper(specdist2017p, group=plotkey2017p$grazetrt)
 permutest(dispersion)
-#Groups     1 0.008188 0.0081878 1.2487    999   0.27 NOOOOOOOO
+#Groups     1 0.008188 0.0081878 1.2487    999   0.25 NOOOOOOOO
 
 #off grazing
 dispersion<-betadisper(specdist2017n, group=plotkey2017n$grazetrt)
@@ -436,7 +523,6 @@ permutest(dispersion)
 #Groups     1 0.04796 0.047959 3.4495    999  0.066 . NOOOOO
 
 #ALL TIME DISPERSION / PRECIP
-specdist<-vegdist(plotspec, method="bray")
 plotkey.alltrt<-mutate(plotkey, alltrt=paste(grazetrt, precinct, sep="_"))%>%
   mutate(trtyr=paste(alltrt, year, sep="_"))
 dispersion<-betadisper(specdist, group=plotkey.alltrt$trtyr)
@@ -449,7 +535,11 @@ dispersion0<-left_join(dispersion0, climate, by = c("year" = "rainyear"))%>%
   dplyr::select(1:4, 7, 8, 11)%>%
   filter(!is.na(precip))
 
-ggplot(dispersion0) + geom_boxplot(data=subset(dispersion0), aes(x=interaction(grazetrt, precinct), y=value)) + facet_wrap(~wetordry)
+ggplot(dispersion0) + geom_bar(data=subset(dispersion0), aes(x=as.factor(year), y=value, fill=interaction(grazetrt, precinct)), stat="identity", position=
+                                 "dodge") +
+  scale_fill_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+                     values=c("pink", "brown", "lightblue", "darkblue"))
+
 
 ggplot(dispersion0, aes(x=precip, y=value, group=interaction(grazetrt, precinct), 
                         color=interaction(grazetrt, precinct))) +
@@ -657,3 +747,22 @@ pltree(plotpseccluster)
 cut_tree<-cutree(plotpseccluster, k=4)
 ind_species<-multipatt(plotspecrel, cut_tree, duleg=TRUE)
 summary(ind_species)
+
+## directional change
+
+rate_change_interval(df=subset(vegtog_vegonly0, alltrt="grazedN"), 
+                     time.var="year", 
+                     species.var="code", 
+                     abundance.var="count", 
+                     replicate.var = "quadyr")
+
+ratech <- rate_change_interval(subset(vegsum0, year<=2014),
+                        time.var = "year",
+                        species.var = "code",
+                        abundance.var = "count", 
+                        replicate.var = "site.trt")%>%
+  mutate(site=substr(site.trt, 1, 3), alltrt=substr(site.trt, 5, 7))
+
+ggplot(ratech, aes(x=(interval), y=distance)) +geom_point(aes(color=alltrt)) +geom_smooth(method='lm', aes(color=alltrt) , se=F )
+                     
+       

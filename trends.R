@@ -96,7 +96,7 @@ vegtog.plot<-vegtog%>%
   mutate(grazetrt=as.factor(grazetrt), precinct=as.factor(precinct), alltrt = as.factor(paste(grazetrt, precinct, sep = "_")))
 
 ### biomass as a function of treatment (specific years, wet years, all years)
-l <- lme(april~alltrt, random =~1|factor(block),  subset(vegtog.plot), na.action = na.omit)
+l <- lme(april~precip, random =~1|factor(block),  subset(vegtog.plot), na.action = na.omit)
 anova(l)
 l <- lme(april~alltrt, random =~1|factor(block),  subset(vegtog.plot, year==2017), na.action = na.omit)
 anova(l)
@@ -104,7 +104,7 @@ anova(l)
 summary(glht(l, linfct=mcp(alltrt="Tukey")))
 
 ### biomass as a function of continuous precip var
-summary(lm(april~precip, vegtog))    #20% r2
+summary(lm(april~precip, vegtog.plot))    #20% r2
 
 # how biomass-precip relationship interacts with treatment 
 library(nlme)
@@ -189,7 +189,7 @@ funcTrend<-mutate(funcTrend, alltrt=(paste(grazetrt, precinct, sep="_")))%>%
 funcTrend<-mutate(funcTrend, alltrt=factor(alltrt))
 
 ### FG as a function of treatment (specific years, wet years, all years)
-l <- lme(count~grazetrt, random =~1|factor(block),  subset(funcTrend, wetordry=="wet"&func=="grass_n"), na.action = na.omit)
+l <- lme(count~alltrt, random =~1|factor(block),  subset(funcTrend, wetordry == "wet" &  func=="forb_n"), na.action = na.omit)
 anova(l)
 l <- lme(count~alltrt, random =~1|factor(block),  subset(funcTrend, year==2017&func=="grass_i"), na.action = na.omit)
 anova(l)
@@ -205,8 +205,12 @@ summary(glht(l, linfct=mcp(grazetrt="Tukey")))
 summary(lm(count~precip, subset(funcTrend, func=="grass_i")))   
 # P=2.52e-6, f-22.7, DF-478, r2=.04
 
+funcTrend$precip2 <- funcTrend$precip*funcTrend$precip
 # how ig-precip relationship interacts with treatment 
-mm<-lme(count~precip*alltrt, random=~1|block, data=subset(funcTrend, func=="grass_i"), na.action = na.omit)
+mm<-lme(count~precip + precip2 + alltrt, random=~1|block, data=subset(funcTrend, func=="forb_n"), na.action = na.omit)
+summary(mm)
+
+mm<-lme(count~  grazetrt + precinct + precip, random=~1|block, data=subset(funcTrend, func=="grass_n"), na.action = na.omit)
 summary(mm)
 
 
@@ -239,7 +243,7 @@ summary(lm(april~count, subset(funcTrend, func=="grass_i")))    #19% r2, basical
 mm<-lme(april~count*alltrt, random=~1|block, data=subset(funcTrend, func=="grass_i"), na.action = na.omit)
 summary(mm)
 
-F2b<-ggplot(data=subset(anovafunc, func=="grass_i"), aes(x=precip, y=(count), color = interaction(grazetrt, precinct))) + 
+F2b<-ggplot(data=subset(anovafunc, func=="grass_n"), aes(x=precip, y=(count), color = interaction(grazetrt, precinct))) + 
   scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
   geom_point() + geom_smooth(se=F, method = "lm")+
   ylab("Percent cover introduced annual grasses")+xlab("Precipitation (mm)")
