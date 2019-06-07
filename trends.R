@@ -186,15 +186,15 @@ ggarrange(F1a, F1b, common.legend=TRUE, legend="bottom")
 ############################
 funcTrend<-mutate(funcTrend, alltrt=(paste(grazetrt, precinct, sep="_")))%>%
   ungroup()
-funcTrend<-mutate(funcTrend, alltrt=factor(alltrt))
+funcTrend<-mutate(funcTrend, alltrt=factor(alltrt), grazetrt=factor(grazetrt), precinct=factor(precinct))
 
 ### FG as a function of treatment (specific years, wet years, all years)
-l <- lme(count~alltrt, random =~1|factor(block),  subset(funcTrend, wetordry == "wet" &  func=="forb_n"), na.action = na.omit)
+l <- lme(count~precinct, random =~1|factor(block),  subset(funcTrend, wetordry == "wet" &  func=="grass_i"), na.action = na.omit)
 anova(l)
 l <- lme(count~alltrt, random =~1|factor(block),  subset(funcTrend, year==2017&func=="grass_i"), na.action = na.omit)
 anova(l)
 
-summary(glht(l, linfct=mcp(grazetrt="Tukey")))
+summary(glht(l, linfct=mcp(precinct="Tukey")))
 
 #Gp-Gn sig across all years (4.9, .0048), Gp-Gn dry(4.22, .044), Up-Gp dry(-3.8, .034), precinct in wet (DF168, F-9.6, p=.002) not quite Gp-Gn wet
 #2017: Gp-Gn (21.25, P=.004), 
@@ -207,8 +207,9 @@ summary(lm(count~precip, subset(funcTrend, func=="grass_i")))
 
 funcTrend$precip2 <- funcTrend$precip*funcTrend$precip
 # how ig-precip relationship interacts with treatment 
-mm<-lme(count~precip + precip2 + alltrt, random=~1|block, data=subset(funcTrend, func=="forb_n"), na.action = na.omit)
+mm<-lme(count~precip  + alltrt, random=~1|block, data=subset(funcTrend, func=="forb_n"), na.action = na.omit)
 summary(mm)
+summary(glht(mm, linfct=mcp(alltrt="Tukey")))
 
 mm<-lme(count~  grazetrt + precinct + precip, random=~1|block, data=subset(funcTrend, func=="grass_n"), na.action = na.omit)
 summary(mm)
@@ -239,16 +240,38 @@ aggFT<-funcTrend%>%
   summarize(count=mean(count))
 
 ### Figure 3 stats: biomassXcover
-summary(lm(april~count, subset(funcTrend, func=="grass_i")))    #19% r2, basically the same as precip
-mm<-lme(april~count*alltrt, random=~1|block, data=subset(funcTrend, func=="grass_i"), na.action = na.omit)
+summary(lm(april~count, subset(funcTrend, func=="grass_i"&grazetrt=="ungrazed")))    #19% r2, basically the same as precip
+mm<-lme(april~count*grazetrt, random=~1|block, data=subset(funcTrend, func=="grass_i"), na.action = na.omit)
 summary(mm)
+summary(glht(mm, linfct=mcp(alltrt="Tukey")))
 
-F2b<-ggplot(data=subset(anovafunc, func=="grass_n"), aes(x=precip, y=(count), color = interaction(grazetrt, precinct))) + 
-  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+
+F2a<-ggplot(vegtog_vegonly, aes(x=precip, y=april, color = interaction(grazetrt, precinct))) + 
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"), 
+                     labels=c("Grazed, Off-Precinct", 
+                              "Ungrazed, Off-Precinct", 
+                              "Grazed, On-Precinct", "Ungrazed, On-Precinct"), name="")+
   geom_point() + geom_smooth(se=F, method = "lm")+
+  ylab("Peak Biomass (units)")+xlab("Precipitation in mm")
+
+
+
+F2a<-ggplot(data=subset(anovafunc, func=="grass_i"), aes(x=precip, y=(count))) + 
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  geom_point(aes(color = interaction(grazetrt, precinct))) + geom_smooth(se=F, method = "lm", color="black")+
   ylab("Percent cover introduced annual grasses")+xlab("Precipitation (mm)")
+
+F2b<-ggplot(data=subset(anovafunc, func=="grass_n"), aes(x=precip, y=(count))) + 
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  geom_point(aes(color = interaction(grazetrt, precinct))) + geom_smooth(se=F, color="black")+
+  ylab("Percent cover native annual grasses")+xlab("Precipitation (mm)")
+
+F2c<-ggplot(data=subset(anovafunc, func=="forb_n"), aes(x=precip, y=(count))) + 
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  geom_point(aes(color = interaction(grazetrt, precinct))) + geom_smooth(se=F, color="black")+
+  ylab("Percent cover native forbs")+xlab("Precipitation (mm)")
 
 ##################
 ### Figure 2 Viz.: biomass and grass by precip in mm
 ##################
-ggarrange(F2a, F2b, common.legend=TRUE, legend="bottom")
+ggarrange(F2a, F2b, F2c, columns=3, common.legend=TRUE, legend="right")

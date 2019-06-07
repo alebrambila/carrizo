@@ -347,7 +347,7 @@ vegtog<-unique(vegtog)
 
 
 vegtog<-left_join(vegtog, rainyear, by=c("year"="rainyear")) %>%
-  group_by(year, block, site, quadrat, code, precinct, grazetrt, native, lifecycle, growthhabit, april, october, wetordry, precip)%>%
+  group_by(year, block, site, quadrat, code, precinct, grazetrt, native, lifecycle, growthhabit, april, october, wetordry, extremeyear, precip)%>%
   summarize(count=sum(count)) %>%
   tbl_df()
 

@@ -289,9 +289,9 @@ data.scores <- as_tibble(data.scores) %>%
   mutate(quadyr=paste(quadrat, year, sep="_"))
 
 plotkey <- vegtog %>%
-  dplyr::select(quadrat, precinct, grazetrt, year)%>%
+  dplyr::select(quadrat, precinct, grazetrt, year, wetordry, extremeyear)%>%
   mutate(quadyr=paste(quadrat, year, sep = "_"))%>%
-  dplyr::select(quadyr, precinct, grazetrt)%>%
+  dplyr::select(quadyr, precinct, grazetrt, wetordry, extremeyear)%>%
   unique()
 
 plotkey2<-subset(plotkey, (plotkey$quadyr%in%rownames(plotspec))) %>%
@@ -333,7 +333,7 @@ species.scores <- as_tibble(species.scores)
 
 
 ##### NMDS VISUALIZATOIN #######
-yearNMDS<-ggplot() +
+Figure4de<-ggplot() +
   geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
   geom_jitter(data=subset(data.scores, year==2014|year==2017),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
   stat_ellipse(data=subset(data.scores, year==2014|year==2017), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
@@ -342,10 +342,11 @@ yearNMDS<-ggplot() +
   scale_color_manual(labels=c("Grazed, Off-Precinct", "Grazed, On-Precinct","Ungrazed, Off-Precinct",  "Ungrazed, On-Precinct"), 
                      values=c("pink", "lightblue", "brown",  "darkblue")) +
   coord_equal() +
-  theme_bw() + facet_wrap(~year, scales="free")
+  theme_bw() + facet_wrap(~year, scales="free")+
+  ggtitle("d, e ")
 
 #all.years
-ggplot() +
+Figure4a<-ggplot() +
   geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
   geom_jitter(data=subset(data.scores),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
   stat_ellipse(data=subset(data.scores), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
@@ -354,175 +355,247 @@ ggplot() +
   scale_color_manual(labels=c("Grazed, Off-Precinct", "Grazed, On-Precinct","Ungrazed, Off-Precinct",  "Ungrazed, On-Precinct"), 
                      values=c("pink", "lightblue", "brown",  "darkblue")) +
   coord_equal() +
-  theme_bw() 
+  theme_bw() +
+  ggtitle("a")
 
 #wet or dry
-extremeNMDS<-ggplot() +
+Figure4bc<-ggplot() +
   geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
-  geom_jitter(data=subset(data.scores, extremeyear=="wet"|extremeyear=="dry"),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
-  stat_ellipse(data=subset(data.scores, extremeyear=="wet"|extremeyear=="dry"), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
+  geom_jitter(data=subset(data.scores, wetordry.y=="wet"|wetordry.y=="dry"),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
+  stat_ellipse(data=subset(data.scores, wetordry.y=="wet"|wetordry.y=="dry"), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
   # add the species labels
   #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
   scale_color_manual(labels=c("Grazed, Off-Precinct", "Grazed, On-Precinct","Ungrazed, Off-Precinct",  "Ungrazed, On-Precinct"), 
                      values=c("pink", "lightblue", "brown",  "darkblue")) +
   coord_equal() +
-  theme_bw() +facet_wrap(~extremeyear)
-ggarrange(yearNMDS, extremeNMDS, common.legend=TRUE, legend.position="bottom", nrow=3, ncol=1)
+  theme_bw() +facet_wrap(~wetordry.y)+
+  ggtitle("b, c")
+ggarrange(Figure4a, Figure4bc, Figure4de, common.legend=TRUE, legend.position="bottom")
 
 ###  DISPERSION AND CENTROID STATS - multivairate view of communities
 # multivariate difference: centroids and dispersion between treatments (quad level composition - no blocks)
 # multivariate change: change in species comp from 2007/2014 to 2017
 # PERMANOVA - statistical testing of centroid difference
 # betadisper - dispersion using vegan/to verify my results
+
+#choose your own subset/treatment var
 multivariate_difference(subset(vegtog_vegonly0, year==2017), 
                         species.var="code", 
                         abundance.var="count",
                         replicate.var="quadyr",
-                        treatment.var="alltrt")
-# year grazetrt grazetrt2 composition_diff abs_dispersion_diff trt_greater_disp
-#1 2017   grazed  ungrazed        0.3107531          0.08183136         ungrazed
-
-multivariate_difference(subset(vegtog_vegonly, year==2017&precinct=="N"), 
-                        species.var="code", 
-                        abundance.var="count",
-                        replicate.var="quadrat",
-                        treatment.var="grazetrt")
-
-# grazetrt grazetrt2 composition_diff abs_dispersion_diff trt_greater_disp
-# 1   grazed  ungrazed        0.2040796          0.03096359           grazed
-
-multivariate_difference(subset(vegtog_vegonly, year==2017&grazetrt=="grazed"), 
-                        species.var="code", 
-                        abundance.var="count",
-                        replicate.var="quadrat",
-                        treatment.var="precinct")
-P
-
-multivariate_difference(subset(vegtog_vegonly, year==2014&grazetrt=="ungrazed"), 
-                        species.var="code", 
-                        abundance.var="count",
-                        replicate.var="quadrat",
                         treatment.var="precinct")
 
 
-# PERMANOVA
-# plotkey2<-as.tibble(rownames(plotspec))%>%
-#   mutate(quadrat=substr(value, 1,9))%>%
-#   mutate(quadyr=value)%>%
-#   dplyr::select(-1)
+
+# PERMANOVAS
+
+# make all the plot keys
 plotkey2<-left_join(plotkey2, plotkey)%>% # new plot key with shifting quadrats
   mutate(year=substr(quadyr, 11, 14))%>%
   mutate(block=substr(quadrat, 3,3))
-plotkey2017<-plotkey%>% #plotkey for only 2017
-  filter(year==2017)
-plotkey2014<-plotkey%>% #plotkey for only 2017
-  filter(year==2014)
-plotkey2017n<-plotkey2017%>%#plotkey for 2017 only off mound
-  filter(precinct=="N")
-plotkey2017p<-plotkey2017%>% #plot key for 2017 only on mound
-  filter(precinct=="P")
 
+plotkeyn<-plotkey%>% #
+  filter(precinct=="N")
+plotkeyp<-plotkey%>% #
+  filter(precinct=="P")
+plotkeyg<-plotkey%>% #
+  filter(grazetrt=="grazed")
+plotkeyu<-plotkey%>% #
+  filter(grazetrt=="ungrazed")
+
+
+plotkey2014<-plotkey%>% #
+  filter(year==2014)
+plotkey2014n<-plotkey2014%>% #
+  filter(precinct=="N")
+plotkey2014p<-plotkey2014%>% #
+  filter(precinct=="P")
+plotkey2014g<-plotkey2014%>% #
+  filter(grazetrt=="grazed")
+plotkey2014u<-plotkey2014%>% #
+  filter(grazetrt=="ungrazed")
+
+plotkey2017<-plotkey%>% #
+  filter(year==2017)
+plotkey2017n<-plotkey2017%>%#p
+  filter(precinct=="N")
+plotkey2017p<-plotkey2017%>% #
+  filter(precinct=="P")
+plotkey2017g<-plotkey2017%>%#
+  filter(grazetrt=="grazed")
+plotkey2017u<-plotkey2017%>% #
+  filter(grazetrt=="ungrazed")
+
+plotkeywet<-plotkey%>% #plotkey for only 2017
+  filter(extremeyear=="wet")
+plotkeywetn<-plotkeywet%>%#plotkey for 2017 only off mound
+  filter(precinct=="N")
+plotkeywetp<-plotkeywet%>% #plot key for 2017 only on mound
+  filter(precinct=="P")
+plotkeywetg<-plotkeywet%>%#plotkey for 2017 only off mound
+  filter(grazetrt=="grazed")
+plotkeywetu<-plotkeywet%>% #plot key for 2017 only on mound
+  filter(grazetrt=="ungrazed")
+
+plotkeydry<-plotkey%>% #plotkey for only 2017
+  filter(extremeyear=="dry")
+plotkeydryn<-plotkeydry%>%#plotkey for 2017 only off mound
+  filter(precinct=="N")
+plotkeydryp<-plotkeydry%>% #plot key for 2017 only on mound
+  filter(precinct=="P")
+plotkeydryg<-plotkeydry%>%#plotkey for 2017 only off mound
+  filter(grazetrt=="grazed")
+plotkeydryu<-plotkeydry%>% #plot key for 2017 only on mound
+  filter(grazetrt=="ungrazed")
+
+#make all the plotspecs
 plotspec2017<-plotspec
 plotspec2014<-plotspec
-plotspec2017<-rownames_to_column(plotspec2017)
-plotspec2014<-rownames_to_column(plotspec2014)
+plotspecwet<-plotspec
+plotspecdry<-plotspec
 
-plotspec2017<-plotspec2017%>%
-  mutate(year=substr(plotspec2017$rowname, 11, 14))%>%
-  filter(year==2017)%>%
-  dplyr::select(-year)
-plotspec2014<-plotspec2014%>%
-  mutate(year=substr(plotspec2014$rowname, 11, 14))%>%
-  filter(year==2014)%>%
-  dplyr::select(-year)
+plotspecn <-subset(plotspec, rownames(plotspec)%in%plotkeyn$quadyr)
+plotspecp <-subset(plotspec, rownames(plotspec)%in%plotkeyp$quadyr)
+plotspecg <-subset(plotspec, rownames(plotspec)%in%plotkeyg$quadyr)
+plotspecu <-subset(plotspec, rownames(plotspec)%in%plotkeyu$quadyr)
 
-plotspec2017p<-subset(plotspec2017, plotspec2017$rowname%in%plotkey2017p$quadyr)
-plotspec2017n<-subset(plotspec2017, plotspec2017$rowname%in%plotkey2017n$quadyr)
+plotspec2017a<-subset(plotspec, rownames(plotspec2017)%in%plotkey2017$quadyr)
+plotspec2017n<-subset(plotspec2017, rownames(plotspec2017)%in%plotkey2017n$quadyr)
+plotspec2017p<-subset(plotspec2017, rownames(plotspec2017)%in%plotkey2017p$quadyr)
+plotspec2017g<-subset(plotspec2017, rownames(plotspec2017)%in%plotkey2017g$quadyr)
+plotspec2017u<-subset(plotspec2017, rownames(plotspec2017)%in%plotkey2017u$quadyr)
 
-plotspec2017<-column_to_rownames(plotspec2017)
-plotspec2014<-column_to_rownames(plotspec2014)
+plotspec2014a<-subset(plotspec, rownames(plotspec2014)%in%plotkey2014$quadyr)
+plotspec2014n<-subset(plotspec2014, rownames(plotspec2014)%in%plotkey2014n$quadyr)
+plotspec2014p<-subset(plotspec2014, rownames(plotspec2014)%in%plotkey2014p$quadyr)
+plotspec2014g<-subset(plotspec2014, rownames(plotspec2014)%in%plotkey2014g$quadyr)
+plotspec2014u<-subset(plotspec2014, rownames(plotspec2014)%in%plotkey2014u$quadyr)
 
-rownames(plotspec2017p)<-plotspec2017p$rowname
-plotspec2017p<-dplyr::select(plotspec2017p, -rowname)
-rownames(plotspec2017n)<-plotspec2017n$rowname
-plotspec2017n<-dplyr::select(plotspec2017n, -rowname)
+plotspecweta<-subset(plotspec, rownames(plotspecwet)%in%plotkeywet$quadyr)
+plotspecwetn<-subset(plotspecwet, rownames(plotspecwet)%in%plotkeywetn$quadyr)
+plotspecwetp<-subset(plotspecwet, rownames(plotspecwet)%in%plotkeywetp$quadyr)
+plotspecwetg<-subset(plotspecwet, rownames(plotspecwet)%in%plotkeywetg$quadyr)
+plotspecwetu<-subset(plotspecwet, rownames(plotspecwet)%in%plotkeywetu$quadyr)
 
-### Incorrect (no strata) - all years
-adonis(plotspec ~ precinct*grazetrt, data=plotkey, perm=1e3)  ### some issue with not equal length datasets
+plotspecdrya<-subset(plotspec, rownames(plotspecdry)%in%plotkeydry$quadyr)
+plotspecdryn<-subset(plotspecdry, rownames(plotspecdry)%in%plotkeydryn$quadyr)
+plotspecdryp<-subset(plotspecdry, rownames(plotspecdry)%in%plotkeydryp$quadyr)
+plotspecdryg<-subset(plotspecdry, rownames(plotspecdry)%in%plotkeydryg$quadyr)
+plotspecdryu<-subset(plotspecdry, rownames(plotspecdry)%in%plotkeydryu$quadyr)
 
-### Correct hypothesis test with strata
-adonis(plotspec ~ precinct*grazetrt, data=plotkey, strata=plotkey$block, perm=1e3)
 
+# analysis..
+### all yr
+adonis(plotspec ~ precinct*grazetrt, data=plotkey, strata=plotkey$block, perm=1e3) # nothing significant
+adonis(plotspecn ~ grazetrt, data=plotkeyn, strata=plotkeyn$block, perm=1e3) # not 
+adonis(plotspecp ~ grazetrt, data=plotkeyp, strata=plotkeyp$block, perm=1e3) # not
+adonis(plotspecg ~ precinct, data=plotkeyg, strata=plotkeyg$block, perm=1e3) # not
+adonis(plotspecu ~ precinct, data=plotkeyu, strata=plotkeyu$block, perm=1e3) # not
+
+###wet
+adonis(plotspecweta ~ precinct*grazetrt, data=plotkeywet, strata=plotkeywet$block, perm=1e3) # not normal, yes extreme graze main
+adonis(plotspecwetn ~ grazetrt, data=plotkeywetn, strata=plotkeywetn$block, perm=1e3) # not
+adonis(plotspecwetp ~ grazetrt, data=plotkeywetp, strata=plotkeywetp$block, perm=1e3) # not
+adonis(plotspecwetg ~ precinct, data=plotkeywetg, strata=plotkeywetg$block, perm=1e3) # not
+adonis(plotspecwetu ~ precinct, data=plotkeywetu, strata=plotkeywetu$block, perm=1e3) # not
+
+### dry
+adonis(plotspecdrya ~ precinct*grazetrt, data=plotkeydry, strata=plotkeydry$block, perm=1e3) # not normal or extreme
+adonis(plotspecdryn ~ grazetrt, data=plotkeydryn, strata=plotkeydryn$block, perm=1e3) # not
+adonis(plotspecdryp ~ grazetrt, data=plotkeydryp, strata=plotkeydryp$block, perm=1e3) # not
+adonis(plotspecdryg ~ precinct, data=plotkeydryg, strata=plotkeydryg$block, perm=1e3) # not
+adonis(plotspecdryu ~ precinct, data=plotkeydryu, strata=plotkeydryu$block, perm=1e3) # not
+
+### 2014 
+adonis(plotspec2014a ~ precinct*grazetrt, data=plotkey2014, strata=plotkey2014$block, perm=1e3) #only grazetrt sig, no int
+adonis(plotspec2014n ~ grazetrt, data=plotkey2014n, strata=plotkey2014n$block, perm=1e3) # not
+adonis(plotspec2014p ~ grazetrt, data=plotkey2014p, strata=plotkey2014p$block, perm=1e3) # not
+adonis(plotspec2014g ~ precinct, data=plotkey2014g, strata=plotkey2014g$block, perm=1e3) # not
+adonis(plotspec2014u ~ precinct, data=plotkey2014u, strata=plotkey2014u$block, perm=1e3) #not
 
 #2017 main effects
-adonis(plotspec2017 ~ precinct*grazetrt, data=plotkey2017, strata=plotkey2017$block, perm=1e3) # grazing and precinct significant, but not interaction
-#Df SumsOfSqs MeanSqs F.Model      R2   Pr(>F)    
-#    precinct           1    1.8246 1.82464  8.8260 0.12010 0.000999 ***
-#    grazetrt           1    0.7296 0.72962  3.5293 0.04802 0.003996 ** 
-#    precinct:grazetrt  1    0.2344 0.23437  1.1337 0.01543 0.256743    
-#    Residuals         60   12.4040 0.20673         0.81645             
-#    Total             63   15.1927                 1.00000 
+adonis(plotspec2017a ~ precinct*grazetrt, data=plotkey2017, strata=plotkey2017$block, perm=1e3) #both significant, no interaction
+adonis(plotspec2017n ~ grazetrt, data=plotkey2017n, strata=plotkey2017n$block, perm=1e3) # sig
+adonis(plotspec2017p ~ grazetrt, data=plotkey2017p, strata=plotkey2017p$block, perm=1e3) # sig
+adonis(plotspec2017g ~ precinct, data=plotkey2017g, strata=plotkey2017g$block, perm=1e3) # sig
+adonis(plotspec2017u ~ precinct, data=plotkey2017u, strata=plotkey2017u$block, perm=1e3) # sig
 
-adonis(plotspec2014 ~ precinct*grazetrt, data=plotkey2014, strata=plotkey2014$block, perm=1e3) # grazing and precinct significant, but not interaction
-
-
-#off precinct test centroids by grazetrt
-adonis(plotspec2017n ~ grazetrt, data=plotkey2017n, strata=plotkey2017n$block, perm=1e3) # off mound w/wo grazing=significant diff
-#Df SumsOfSqs MeanSqs F.Model      R2   Pr(>F)   
-#   grazetrt   1    0.6139 0.61388  4.0682 0.13995 0.001998 **
-#   Residuals 25    3.7725 0.15090         0.86005            
-#   Total     26    4.3864                 1.00000
-
-#on precinct test centroids by grazetrt
-adonis(plotspec2017p ~ grazetrt, data=plotkey2017p, strata=plotkey2017p$block, perm=1e3) # on mound w/wo graizng not significant diff
-#          Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)  
-#   grazetrt   1    0.3501 0.35011  1.4197 0.03898 0.0959 .
-#   Residuals 35    8.6315 0.24661         0.96102         
-#   Total     36    8.9816                 1.00000   
-
-
-#Dispersion stats
+      
+#distances
 specdist<-vegdist(plotspec, method="bray")
-specdist2017<-vegdist(plotspec2017, method="bray")
+
+specdistn<-vegdist(plotspecn, method="bray")
+specdistp<-vegdist(plotspecp, method="bray")
+specdistg<-vegdist(plotspecg, method="bray")
+specdistu<-vegdist(plotspecu, method="bray")
+
+specdist2017a<-vegdist(plotspec2017a, method="bray")
 specdist2017n<-vegdist(plotspec2017n, method="bray")
 specdist2017p<-vegdist(plotspec2017p, method="bray")
-# all time disp test
-dispersion<-betadisper(specdist, group=plotkey$grazetrt)
+specdist2017g<-vegdist(plotspec2017g, method="bray")
+specdist2017u<-vegdist(plotspec2017u, method="bray")
+
+specdist2014a<-vegdist(plotspec2014a, method="bray")
+specdist2014n<-vegdist(plotspec2014n, method="bray")
+specdist2014p<-vegdist(plotspec2014p, method="bray")
+specdist2014g<-vegdist(plotspec2014g, method="bray")
+specdist2014u<-vegdist(plotspec2014u, method="bray")
+
+specdistweta<-vegdist(plotspecweta, method="bray")
+specdistwetn<-vegdist(plotspecwetn, method="bray")
+specdistwetp<-vegdist(plotspecwetp, method="bray")
+specdistwetg<-vegdist(plotspecwetg, method="bray")
+specdistwetu<-vegdist(plotspecwetu, method="bray")
+
+specdistdrya<-vegdist(plotspecdrya, method="bray")
+specdistdryn<-vegdist(plotspecdryn, method="bray")
+specdistdryp<-vegdist(plotspecdryp, method="bray")
+specdistdryg<-vegdist(plotspecdryg, method="bray")
+specdistdryu<-vegdist(plotspecdryu, method="bray")
+
+
+# tests
+dispersion<-betadisper(specdist, group=plotkey$grazetrt) #sig
+dispersion<-betadisper(specdist, group=plotkey$precinct)#ns
+dispersion<-betadisper(specdistn, group=plotkeyn$grazetrt)#ns
+dispersion<-betadisper(specdistp, group=plotkeyp$grazetrt)#ns
+dispersion<-betadisper(specdistg, group=plotkeyg$precinct)#ns
+dispersion<-betadisper(specdistu, group=plotkeyu$precinct)#ns
+                       
+dispersion<-betadisper(specdist2017, group=plotkey2017$grazetrt)#ns
+dispersion<-betadisper(specdist2017, group=plotkey2017$precinct)#sig
+dispersion<-betadisper(specdist2017n, group=plotkey2017n$grazetrt)#ns
+dispersion<-betadisper(specdist2017p, group=plotkey2017p$grazetrt)#ns
+dispersion<-betadisper(specdist2017g, group=plotkey2017g$precinct)#sig
+dispersion<-betadisper(specdist2017u, group=plotkey2017u$precinct)#ns
+
+dispersion<-betadisper(specdist2014a, group=plotkey2014$grazetrt)#ns
+dispersion<-betadisper(specdist2014a, group=plotkey2014$precinct)#ns
+dispersion<-betadisper(specdist2014n, group=plotkey2014n$grazetrt)#ns
+dispersion<-betadisper(specdist2014p, group=plotkey2014p$grazetrt)#ns
+dispersion<-betadisper(specdist2014g, group=plotkey2014g$precinct)#ns
+dispersion<-betadisper(specdist2014u, group=plotkey2014u$precinct)#ns
+
+dispersion<-betadisper(specdistweta, group=plotkeywet$grazetrt)#ns
+dispersion<-betadisper(specdistweta, group=plotkeywet$precinct)#ns
+dispersion<-betadisper(specdistwetn, group=plotkeywetn$grazetrt)#.1 sig
+dispersion<-betadisper(specdistwetp, group=plotkeywetp$grazetrt)#ns
+dispersion<-betadisper(specdistwetg, group=plotkeywetg$precinct)#ns
+dispersion<-betadisper(specdistwetu, group=plotkeywetu$precinct)#ns
+
+dispersion<-betadisper(specdistdrya, group=plotkeydry$grazetrt)#ns
+dispersion<-betadisper(specdistdrya, group=plotkeydry$precinct)#ns
+dispersion<-betadisper(specdistdryn, group=plotkeydryn$grazetrt)#ns
+dispersion<-betadisper(specdistdryp, group=plotkeydryp$grazetrt)#ns
+dispersion<-betadisper(specdistdryg, group=plotkeydryg$precinct)#ns
+dispersion<-betadisper(specdistdryu, group=plotkeydryu$precinct)#ns
+
 permutest(dispersion)
 TukeyHSD(dispersion)
 
 
-#2017 disp tests
-#precinct main effect
-dispersion<-betadisper(specdist2017, group=plotkey2017$precinct)
-permutest(dispersion)
-TukeyHSD(dispersion)
-#Groups     1 0.15346 0.153460 16.638    999  0.001 ***
 
-#Grazing main effect
-dispersion<-betadisper(specdist2017, group=plotkey2017$grazetrt)
-permutest(dispersion)
-TukeyHSD(dispersion)
-
-#Groups     1 0.02125 0.021246 1.0835    999  0.295
-
-#interaction effect test
-dispersion<-betadisper(specdist2017, group=interaction(plotkey2017$precinct, plotkey2017$grazetrt))
-permutest(dispersion)
-TukeyHSD(dispersion)
-# Groups     3 0.28245 0.094151 9.9103    999  0.001 ***
-
-#interaction on precinct - grazing
-dispersion<-betadisper(specdist2017p, group=plotkey2017p$grazetrt)
-permutest(dispersion)
-#Groups     1 0.008188 0.0081878 1.2487    999   0.25 NOOOOOOOO
-
-#off grazing
-dispersion<-betadisper(specdist2017n, group=plotkey2017n$grazetrt)
-permutest(dispersion)
-#Groups     1 0.04796 0.047959 3.4495    999  0.066 . NOOOOO
-
-#ALL TIME DISPERSION / PRECIP
+#ALL TIME DISPERSION / PRECIP visualization
 plotkey.alltrt<-mutate(plotkey, alltrt=paste(grazetrt, precinct, sep="_"))%>%
   mutate(trtyr=paste(alltrt, year, sep="_"))
 dispersion<-betadisper(specdist, group=plotkey.alltrt$trtyr)
@@ -581,8 +654,9 @@ keyspp<- allspp %>%
   ungroup()%>%
  mutate(code=ifelse(code=="guilas"|code=="lasmin"|code=="lepnit"|code=="trigra", code, ifelse(func=="forb_n", "wildflower", code)))%>%
   mutate(code=ifelse(code=="erocic", code, ifelse(func=="forb_i", "iforb", code)))%>%
-  group_by(year, grazetrt, precinct, code, precip, growthhabit, native, func)%>%
+  group_by(year, grazetrt, precinct, code, precip, growthhabit, native, func)#%>%
     summarize(meancount=sum(meancount))
+
 
 
   vegtog.agg<-vegtog_vegonly%>%
@@ -636,34 +710,31 @@ ggplot(subset(keyspp, func=="forb_i"), aes(x=year, y=meancount))+
 ### 5. Specific Native and Invasive species % cover
 
 # a. Percent cover of key weeds. Log-transformed.
-ggplot(subset(vegtog, (year==2014|year==2017)&(code=="hormur"|code=="schara"|code=="bromad")), 
+ggplot(subset(vegtog, native=="n"&growthhabit=="forb"&(code!="guilas"&code!="lepnit"&code!="lasmin"&code!="trilan")), 
        aes(x=interaction(grazetrt, precinct), 
-           y=log(count), color=interaction(grazetrt, precinct))) +
+           y=(count), color=interaction(grazetrt, precinct))) +
   geom_boxplot() +
   theme(axis.text.x=element_blank()) +
   geom_jitter(width=.1, color="black") +
-  facet_grid(code~year, scales="free") + 
+  facet_grid(~wetordry, scales="free") + 
   scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
                      values=c("pink", "brown", "lightblue", "darkblue")) +
   xlab("Treatment") + ylab ("log(Count)") + 
   ggtitle("Invasive grass cover")
 
-## 2017 weeds STATS ##
-hormur.2017.anova <- aov(count~factor(grazetrt)*factor(precinct)+factor(site), subset(vegtog, (year==2017)&(code=="hormur")))
-summary(hormur.2017.anova)
-TukeyHSD(hormur.2017.anova) #grazed p-n is significantly different, ungrazed p-n is almost. grazing doesnt affect w/in p/n
+## spec STATS ##
 
-bromad.2017.anova <- aov(count~factor(grazetrt)*factor(precinct)+factor(site), subset(vegtog, (year==2017)&(code=="bromad")))
-summary(bromad.2017.anova)
-TukeyHSD(bromad.2017.anova) #nothing
+alltrt.anova <- aov(count~factor(grazetrt), subset(vegtog, wetordry=='dry'&precinct=="N"&native=="n"&growthhabit=="forb"&(code!="guilas"&code!="lepnit"&code!="lasmin"&code!="trilan")))
+summary(alltrt.anova)
+TukeyHSD(alltrt.anova) 
 
-schara.2017.anova <- aov(count~factor(grazetrt)*factor(precinct)+factor(site), subset(vegtog, (year==2017)&(code=="schara")))
-summary(schara.2017.anova)
-TukeyHSD(schara.2017.anova) #nothing
+precinct.anova <- aov(count~factor(precinct), subset(vegtog, native=="n"&growthhabit=="forb"&(code!="guilas"&code!="lepnit"&code!="lasmin"&code!="trilan")))
+summary(precinct.anova)
+TukeyHSD(precinct.anova) #lower precinct -1.224386, factor(precinct)   1    349   348.8   7.176 0.00752 **
 
-
-# Nothin much, look at with key native too. NOT MUCH NATIVE GRASS AT ALL
-
+grazetrt.anova <- aov(count~factor(grazetrt), subset(vegtog, wetordry=="dry"&native=="n"&growthhabit=="forb"&(code!="guilas"&code!="lepnit"&code!="lasmin"&code!="trilan")))
+summary(grazetrt.anova)
+TukeyHSD(grazetrt.anova) 
 
 
 
@@ -688,7 +759,6 @@ turnover<-turnover(vegsum0,
   group_by(alltrt, year)%>%
   summarize(mean.turnover=mean(as.numeric(total)), se.turnover=calcSE(as.numeric(total)))
 
-ggplot(turnover)+geom_line(aes(as.factor(year), mean.turnover, group=alltrt, color=alltrt))
 
 rankshift <- rank_shift(vegsum0,
                         time.var = "year",
@@ -700,7 +770,22 @@ rankshift <- rank_shift(vegsum0,
   summarize(mean.MRS=mean(MRS), se.MRS=calcSE(MRS))%>%
   mutate(year=substr(year_pair, 6,9))
 
-ggplot(rankshift)+geom_line(aes(as.factor(year_pair), mean.MRS, group=alltrt, color=alltrt))
+Fig5a<-ggplot(rankshift)+
+  geom_line(aes(as.factor(year), mean.MRS, group=alltrt, color=alltrt))+
+  geom_errorbar(aes(color=alltrt, as.factor(year), ymin=mean.MRS-se.MRS, ymax=mean.MRS+se.MRS, ), width=.1)+
+  labs(x="Year", y="Mean Rank Shift")+
+  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+                     values=c("pink", "brown", "lightblue", "darkblue"))+
+  ggtitle("a")
+Fig5b<-ggplot(turnover)+
+  geom_line(aes(as.factor(year), mean.turnover, group=alltrt, color=alltrt))+
+  labs(x="Year", y="Turnover")+
+  geom_errorbar(aes(color=alltrt, as.factor(year), ymin=mean.turnover-se.turnover, ymax=mean.turnover+se.turnover, ), width=.1)+
+  
+  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+                     values=c("pink", "brown", "lightblue", "darkblue"))+
+  ggtitle("b")
+ggarrange(Fig5a, Fig5b, ncol=1, nrow=2,  common.legend = TRUE, legend="right")
 
 richsum<-vegsum0%>%
   group_by(year, site, code, alltrt, site.trt)%>%
@@ -749,6 +834,7 @@ ind_species<-multipatt(plotspecrel, cut_tree, duleg=TRUE)
 summary(ind_species)
 
 ## directional change
+vegtog_vegonly0<-mutate(vegtog_vegonly, quadyr=paste(quadrat, year, sep="_"))
 
 rate_change_interval(df=subset(vegtog_vegonly0, alltrt="grazedN"), 
                      time.var="year", 
@@ -756,13 +842,64 @@ rate_change_interval(df=subset(vegtog_vegonly0, alltrt="grazedN"),
                      abundance.var="count", 
                      replicate.var = "quadyr")
 
-ratech <- rate_change_interval(subset(vegsum0, year<=2014),
+
+
+ratechin_pre <- rate_change_interval(subset(vegsum0, year<=2014),
                         time.var = "year",
                         species.var = "code",
                         abundance.var = "count", 
                         replicate.var = "site.trt")%>%
-  mutate(site=substr(site.trt, 1, 3), alltrt=substr(site.trt, 5, 7))
+  mutate(site=substr(site.trt, 1, 3), alltrt=substr(site.trt, 5, 7))%>%
+  mutate(timing="pre_drought")
 
-ggplot(ratech, aes(x=(interval), y=distance)) +geom_point(aes(color=alltrt)) +geom_smooth(method='lm', aes(color=alltrt) , se=F )
-                     
+ratechin_post <- rate_change_interval(subset(vegsum0, year>=2014),
+                                      time.var = "year",
+                                      species.var = "code",
+                                      abundance.var = "count", 
+                                      replicate.var = "site.trt")%>%
+  mutate(site=substr(site.trt, 1, 3), alltrt=substr(site.trt, 5, 7))%>%
+  mutate(timing="post_drought")
+
+ratechin<-rbind(ratechin_pre, ratechin_post)
+
+ggplot(ratechin, aes(x=(interval), y=distance)) +geom_point(aes(color=alltrt)) +geom_smooth(method='lm', aes(color=alltrt) , se=F )+
+  facet_wrap(~timing, scales="free")+
+  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+                     values=c("pink", "brown", "lightblue", "darkblue"))
+
+
+ratech.alltime <- rate_change(subset(vegsum0),
+                              time.var = "year",
+                              species.var = "code",
+                              abundance.var = "count", 
+                              replicate.var = "site.trt")%>%
+  mutate(site=substr(site.trt, 1, 3), alltrt=substr(site.trt, 5, 7))%>%
+  mutate(timing="all_time (2007-2017")        
+
+ratech.pre <- rate_change(subset(vegsum0, year<=2014),
+                                 time.var = "year",
+                                 species.var = "code",
+                                 abundance.var = "count", 
+                                 replicate.var = "site.trt")%>%
+  mutate(site=substr(site.trt, 1, 3), alltrt=substr(site.trt, 5, 7))%>%
+  mutate(timing="pre_drought (2007-2014)")
+
+
+ratech.post <- rate_change(subset(vegsum0, year>=2014),
+                          time.var = "year",
+                          species.var = "code",
+                          abundance.var = "count", 
+                          replicate.var = "site.trt")%>%
+  mutate(site=substr(site.trt, 1, 3), alltrt=substr(site.trt, 5, 7))%>%
+  mutate(timing="post_drought (2014-2017)")
+
+ratech<-rbind(ratech.pre, ratech.post, ratech.alltime)
+
+
+ggplot(ratech, aes(x=alltrt, y=rate_change)) +geom_boxplot(aes(color=alltrt)) +facet_wrap(~timing, scales="free") +
+  geom_hline(yintercept=0)+
+  scale_color_manual(labels=c("Grazed, Off-Precinct", "Ungrazed, Off-Precinct", "Grazed, On-Precinct", "Ungrazed, On-Precinct"), 
+                     values=c("pink", "brown", "lightblue", "darkblue"))+
+  xlab("")
+
        
