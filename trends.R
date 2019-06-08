@@ -95,13 +95,24 @@ vegtog.plot<-vegtog%>%
   ungroup()%>%
   mutate(grazetrt=as.factor(grazetrt), precinct=as.factor(precinct), alltrt = as.factor(paste(grazetrt, precinct, sep = "_")))
 
+
+### biomass across all variables
+l <- lme(april~precip + grazetrt*precinct, random =~1|factor(block),  subset(vegtog.plot), na.action = na.omit)
+summary(l)
+
 ### biomass as a function of treatment (specific years, wet years, all years)
 l <- lme(april~precip, random =~1|factor(block),  subset(vegtog.plot), na.action = na.omit)
 anova(l)
-l <- lme(april~alltrt, random =~1|factor(block),  subset(vegtog.plot, year==2017), na.action = na.omit)
+
+l <- lme(april~alltrt, random =~1|factor(block),  subset(vegtog.plot, year == 2017), na.action = na.omit)
 anova(l)
 
 summary(glht(l, linfct=mcp(alltrt="Tukey")))
+
+
+l <- lme(april~alltrt, random =~1|factor(block),  subset(vegtog.plot, year==2017), na.action = na.omit)
+anova(l)
+
 
 ### biomass as a function of continuous precip var
 summary(lm(april~precip, vegtog.plot))    #20% r2
