@@ -68,22 +68,23 @@ vegtog<-mutate(vegtog, alltrt=factor(paste(grazetrt, precinct, sep="")))
 
 gammaBiomass<- vegtog_vegonly%>% # measured at the plot level, not quadrat
   filter(!is.na(april), !is.na(october))%>%
+  mutate(april=april*16)%>%
   group_by(year, grazetrt, precinct) %>% 
     summarize(mean=mean(april), se=calcSE(april))
 
-F1a<-ggplot()+ 
-  geom_bar(data=climate, aes(x=as.integer(rainyear), y=precip/10), stat="identity", fill='lightgrey')+
+ggplot()+ 
+  geom_bar(data=climate, aes(x=as.numeric(rainyear), y=precip/.5), stat="identity", fill='lightgrey')+
   geom_line(data=gammaBiomass, aes(x=as.integer(year), y=mean, color=interaction(grazetrt, precinct))) +
  geom_errorbar(width=.2, data=gammaBiomass, aes(x=year, ymin=mean-se, ymax=mean+se, color=interaction(grazetrt, precinct))) +
-  ylab("Plot level biomass (units)") +
+  ylab("Biomass (g/m2)") +
   xlab("Year") +
   #annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=0, ymax=30, alpha = .2)+
   #annotate("text", x=2013.5, y=25, label="not grazed", alpha=.6)+
   scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"), 
-                     labels=c("Grazed, Off-Precinct", 
-                              "Ungrazed, Off-Precinct", 
-                              "Grazed, On-Precinct", "Ungrazed, On-Precinct"), name="")+
-  scale_y_continuous(sec.axis = sec_axis(~.*10, name = ""))
+                     labels=c("Grazed, Off-Mound", 
+                              "Not Grazed, Off-Mound", 
+                              "Grazed, On-Mound", "Not Grazed, On-Mound"), name="")+
+  scale_y_continuous(sec.axis = sec_axis(~.*.5, name = "Precipitation (mm)"))
   
 #######################
 ## BIOMASS STATISTICS
@@ -186,6 +187,7 @@ F1b<-ggplot()+
 #  annotate("text", x=2013.5, y=.95, label="not grazed", alpha=.6)+
   scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
 scale_y_continuous(sec.axis = sec_axis(~.*6, name = "Precipitation in mm"))
+F1b
 
 ######################### 
 ## FIGURE 1: treatment effect on biomass (a), and FN group (b) over time.  viz with precip
@@ -265,24 +267,30 @@ F2a<-ggplot(vegtog_vegonly, aes(x=precip, y=april, color = interaction(grazetrt,
   geom_point() + geom_smooth(se=F, method = "lm")+
   ylab("Peak Biomass (units)")+xlab("Precipitation in mm")
 
-
+anovafunc<anovafunc%>%
+  mutate(precip=precip/10)
 
 F2a<-ggplot(data=subset(anovafunc, func=="grass_i"), aes(x=precip, y=(count))) + 
-  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"), 
+                     labels=c("Grazed, Off-Mound", "Not Grazed, Off-Mound", "Grazed, On-Mound", "Not Grazed, On-Mound"))+
   geom_point(aes(color = interaction(grazetrt, precinct))) + geom_smooth(se=F, method = "lm", color="black")+
-  ylab("Percent cover introduced annual grasses")+xlab("Precipitation (mm)")
+  ylab("Percent cover introduced annual grasses")+ggtitle("a")+xlab("")
 
 F2b<-ggplot(data=subset(anovafunc, func=="grass_n"), aes(x=precip, y=(count))) + 
   scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
-  geom_point(aes(color = interaction(grazetrt, precinct))) + geom_smooth(se=F, color="black")+
-  ylab("Percent cover native annual grasses")+xlab("Precipitation (mm)")
+  geom_point(aes(color = interaction(grazetrt, precinct))) + geom_smooth(method=lm, se=F, color="black")+
+  ylab("Percent cover native annual grasses")+xlab("Precipitation (mm)")+ggtitle("b")
 
 F2c<-ggplot(data=subset(anovafunc, func=="forb_n"), aes(x=precip, y=(count))) + 
   scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
-  geom_point(aes(color = interaction(grazetrt, precinct))) + geom_smooth(se=F, color="black")+
-  ylab("Percent cover native forbs")+xlab("Precipitation (mm)")
+  geom_point(aes(color = interaction(grazetrt, precinct))) + geom_smooth(method=lm, formula=y~poly(x, 2), se=F, color="black")+
+  ylab("Percent cover native forbs")+ggtitle("c")+xlab("")
+
+anovafunc_uni<-anovafunc%>%
+  mutate(precip=precip*precip)
+summary(lm(count~precip, subset(anovafunc_uni, func=="forb_n")))
 
 ##################
 ### Figure 2 Viz.: biomass and grass by precip in mm
 ##################
-ggarrange(F2a, F2b, F2c, columns=3, common.legend=TRUE, legend="right")
+ggarrange(F2a, F2b, F2c, ncol=3, common.legend=TRUE, legend="right")

@@ -108,6 +108,17 @@ ggplot(subset(alpha.allyear),
   xlab("Treatment") +
   ggtitle("Quad-level Shannon Diversity")
 
+ggplot(alpha.shan, 
+       aes(x=precip, 
+           y=Shannon, color=interaction(grazetrt, precinct))) + 
+  geom_point() + geom_smooth(method=lm, se=F)+
+  scale_color_manual(labels=c("Grazed, Off-Mound", "Not Grazed, Off-Mound", "Grazed, On-Mound", "Not Grazed, On-Mound"), 
+                     values=c("pink", "brown", "lightblue", "darkblue")) +
+  ylab("Shannon Diversity") +xlab("Precipitation (mm)")
+
+
+
+
 ## SHANNON DIVERSITY STATS ##
 
 #not summed across years
@@ -124,7 +135,7 @@ summary(glht(l, linfct=mcp(grazetrt="Tukey")))
 summary(lm(Shannon~precip, data=alpha.shan))
 ggplot(alpha.shan, aes(x=precip, y=Shannon)) +geom_point(aes(color=alltrt)) +geom_smooth(method="lm", aes(color=alltrt))
 
-mm<- lme(Shannon~grazetrt, random=~1|factor(block),  alpha.shan, na.action = na.omit)
+mm<- lme(Shannon~precip*grazetrt*precinct, random=~1|factor(block),  alpha.shan, na.action = na.omit)
 summary(mm)
 
 ##gamma
@@ -333,8 +344,8 @@ species.scores <- as_tibble(species.scores)
 
 
 ##### NMDS VISUALIZATOIN #######
-Figure4de<-ggplot() +
-  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
+ggplot() +
+ # geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
   geom_jitter(data=subset(data.scores, year==2014|year==2017),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
   stat_ellipse(data=subset(data.scores, year==2014|year==2017), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
   # add the species labels
@@ -342,25 +353,26 @@ Figure4de<-ggplot() +
   scale_color_manual(labels=c("Grazed, Off-Precinct", "Grazed, On-Precinct","Ungrazed, Off-Precinct",  "Ungrazed, On-Precinct"), 
                      values=c("pink", "lightblue", "brown",  "darkblue")) +
   coord_equal() +
-  theme_bw() + facet_wrap(~year, scales="free")+
-  ggtitle("d, e ")
+  theme_classic() + facet_wrap(~year, scales="free")+
+  ggtitle("d, e ")+
+  scale_x_continuous(limits = c(-2.5, 2.5))+scale_y_continuous(limits = c(-2.5, 2.5))
 
 #all.years
-Figure4a<-ggplot() +
-  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
-  geom_jitter(data=subset(data.scores),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
-  stat_ellipse(data=subset(data.scores), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
+ggplot() +
+#  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.3) +
+  geom_jitter(color="darkblue", data=subset(data.scores, trt=="ungrazed_P"),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
+  stat_ellipse(color="darkblue", data=subset(data.scores, trt=="ungrazed_P"), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
   # add the species labels
   #  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=6,vjust=0) +  # add the site labels
-  scale_color_manual(labels=c("Grazed, Off-Precinct", "Grazed, On-Precinct","Ungrazed, Off-Precinct",  "Ungrazed, On-Precinct"), 
-                     values=c("pink", "lightblue", "brown",  "darkblue")) +
+ 
   coord_equal() +
-  theme_bw() +
-  ggtitle("a")
+  theme_classic() +  scale_x_continuous(limits = c(-2.5, 2.5))+scale_y_continuous(limits = c(-2.5, 2.5))
+
+  
 
 #wet or dry
-Figure4bc<-ggplot() +
-  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
+ggplot() +
+  #geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.1) +
   geom_jitter(data=subset(data.scores, wetordry.y=="wet"|wetordry.y=="dry"),aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)),size=2) + # add the point markers
   stat_ellipse(data=subset(data.scores, wetordry.y=="wet"|wetordry.y=="dry"), aes(x=NMDS1,y=NMDS2, color=interaction(precinct, grazetrt)), type='t',size =1)+
   # add the species labels
@@ -368,8 +380,10 @@ Figure4bc<-ggplot() +
   scale_color_manual(labels=c("Grazed, Off-Precinct", "Grazed, On-Precinct","Ungrazed, Off-Precinct",  "Ungrazed, On-Precinct"), 
                      values=c("pink", "lightblue", "brown",  "darkblue")) +
   coord_equal() +
-  theme_bw() +facet_wrap(~wetordry.y)+
-  ggtitle("b, c")
+  theme_classic() +facet_wrap(~wetordry.y)+
+  ggtitle("b, c")+
+  scale_x_continuous(limits = c(-2.5, 2.5))+scale_y_continuous(limits = c(-2.5, 2.5))
+
 ggarrange(Figure4a, Figure4bc, Figure4de, common.legend=TRUE, legend.position="bottom")
 
 ###  DISPERSION AND CENTROID STATS - multivairate view of communities
@@ -737,7 +751,29 @@ summary(grazetrt.anova)
 TukeyHSD(grazetrt.anova) 
 
 
+l<-lme(count~precip, random=~1|factor(block), subset(vegtog_vegonly, native=="n"&growthhabit=="grass"), na.action=na.omit)
+anova(l)
+summary(glht(l, linfct=mcp(wet.trt="Tukey")))
 
+vegtog_nomodal<-vegtog_vegonly%>%
+  group_by(native, growthhabit, year, quadrat, site,  alltrt, block, precip)%>%
+  summarize(count=sum(count))
+vegtog_unimodal<-vegtog_vegonly%>%
+  mutate(count=count*count)%>%
+  group_by(native, growthhabit, year, quadrat, site,  alltrt, block, precip)%>%
+  summarize(count=sum(count))
+vegtog_unimodal2<-vegtog_vegonly%>%
+  mutate(precip=precip*precip)%>%
+  group_by(native, growthhabit, year, quadrat, site, alltrt, block, precip)%>%
+  summarize(count=sum(count))
+
+l<-lme(count~precip, random=~1|factor(block), subset(vegtog_nomodal, native=="n"&growthhabit=="forb"), na.action=na.omit)
+anova(l)
+summary(glht(l, linfct=mcp(wet.trt="Tukey")))
+
+summary(lm(count~precip, subset(vegtog_unimodal, native=="n"&growthhabit=="forb")))
+
+ggplot(vegtog_nomodal, )
 ####################
 ### TURNOVER ETC
 ###################
@@ -803,10 +839,13 @@ ggplot(richsum)+geom_line(aes(as.factor(year), meanshan, group=alltrt, color=all
 # Indicator Species
 ###########
 library(indicspecies)
-plotspecrel<-decostand(plotspec2017, "total")
-indicators<-multipatt(plotspecrel2017, interaction(plotkey2017$grazetrt, plotkey2017$precinct), func="IndVal.g", control=how(nperm=999))
+plotspecrel2017<-decostand(plotspec2017a, "total")
+indicators<-multipatt(plotspecrel2017, interaction(plotkey2017$grazetrt, plotkey2017$precinct), func="r.g", control=how(nperm=999))
 summary(indicators)
 summary(indicators, alpha=1)
+library(labdsv)
+indicators2<-indval(plotspecrel2017, interaction(plotkey2017$grazetrt, plotkey2017$precinct))
+summary(indicators2)
 
 #r.g 2017
 # grazed.n (lepnit)

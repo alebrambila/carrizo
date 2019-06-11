@@ -318,12 +318,17 @@ quadCount2<-left_join(vegtog, vegsum)%>%
   mutate(new=ifelse(is.na(new), "good", new))%>%
   filter(new!="bad")%>%
   group_by(year, grazetrt, block, precinct) %>%
-  summarize(totquadcount=length(unique(quadrat)))
+  summarize(totquadcount=length(unique(quadrat)))%>%
+  ungroup()%>%
+  mutate(block=paste("Block", block))
+
+
 ggplot(quadCount2, aes(x=year, y=totquadcount, color=interaction(grazetrt, precinct))) +
   geom_line() +
-  annotate("rect", xmin = 2011.5, xmax = 2015.5, ymin=.25, ymax=10, alpha = .2)+
-  annotate("text", x=2013.5, y=11, label="not grazed", alpha=.6)+
-  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"))+
+  scale_color_manual(values=c("pink", "brown", "lightblue", "darkblue"), 
+                                                                                             labels=c("Grazed, Off-Precinct", 
+                                                                                                      "Ungrazed, Off-Precinct", 
+                                                                                                      "Grazed, On-Precinct", "Ungrazed, On-Precinct"), name="")+
   labs(y="# of Quadrats")+facet_wrap(~block)
 
 
